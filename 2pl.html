@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Phase Locking (2PL) - Complete Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 2rem; /* Offset for anchor links */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple syntax highlighting for code blocks */
+        pre code .comment { color: #8b949e; }
+        pre code .keyword { color: #ff7b72; }
+        pre code .string { color: #a5d6ff; }
+        pre code .number { color: #f0883e; }
+        pre code .function { color: #d2a8ff; }
+        pre code .class { color: #f0883e; }
+        pre code .tag { color: #7ee787; }
+        pre code .attr { color: #79c0ff; }
+        
+        /* Table styling */
+        th, td {
+            border: 1px solid #4a5568; /* gray-700 */
+            padding: 0.75rem; /* p-3 */
+            text-align: left;
+        }
+        th {
+            background-color: #2d3748; /* gray-800 */
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #2a303c; /* A slightly different dark shade */
+        }
+        tr:nth-child(odd) {
+            background-color: #2d3748; /* gray-800 */
+        }
+        
+        /* Specific styles for math-like code */
+        code.math {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #2d3748; /* gray-800 */
+            color: #90cdf4; /* blue-300 */
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // This example uses 'class' but we'll force dark mode via html class
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            750: '#2a303c',
+                            850: '#1e232b',
+                            900: '#161b22',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-300 leading-relaxed">
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <nav class="hidden lg:block fixed left-0 top-0 h-screen w-64 bg-gray-850 border-r border-gray-700 overflow-y-auto p-6 shadow-lg">
+            <h3 class="text-lg font-semibold text-cyan-400 mb-6">On this page</h3>
+            <ul id="sidebar-nav" class="space-y-3">
+                <li><a href="#problem" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">1. Fundamental Problem</a></li>
+                <li><a href="#what-is-2pl" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">2. What is 2PL?</a></li>
+                <li><a href="#lock-types" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">3. Lock Types</a></li>
+                <li><a href="#how-2pl-works" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">4. How 2PL Works</a></li>
+                <li><a href="#distributed-2pl" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">5. Distributed 2PL</a></li>
+                <li><a href="#db-implementations" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">6. DB Implementations</a></li>
+                <li><a href="#alternatives" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">7. Alternative Approaches</a></li>
+                <li><a href="#decision-framework" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">8. Decision Framework</a></li>
+                <li><a href="#real-world" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">9. Real-World Examples</a></li>
+                <li><a href="#pitfalls" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">10. Common Pitfalls</a></li>
+                <li><a href="#quick-reference" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">11. Quick Reference</a></li>
+                <li><a href="#takeaways" class="nav-link text-gray-400 hover:text-cyan-300 transition-colors duration-200">12. Key Takeaways</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="w-full lg:ml-64">
+            <div class="max-w-5xl mx-auto p-4 sm:p-8">
+
+                <!-- Header -->
+                <div class="mb-8 p-6 bg-gray-850 rounded-lg shadow-lg border border-gray-700">
+                    <h1 class="text-4xl font-bold text-cyan-400 mb-2">Two-Phase Locking (2PL) - Complete Guide</h1>
+                    <div class="flex flex-wrap justify-between text-sm text-gray-400">
+                        <span><span class="font-semibold">Created:</span> November 4, 2025</span>
+                        <span><span class="font-semibold">Topic:</span> Concurrency Control in Distributed Systems</span>
+                        <span><span class="font-semibold">Level:</span> System Design - Advanced</span>
+                    </div>
+                </div>
+
+                <!-- Main Content Section -->
+                <div class="bg-gray-850 p-6 sm:p-10 rounded-lg shadow-lg border border-gray-700">
+
+                    <!-- 1. The Fundamental Problem -->
+                    <section id="problem">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">1. The Fundamental Problem</h2>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Scenario: Flight Booking System</h3>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li><span class="font-semibold">Components:</span> Booking Service, Payment Service, Inventory Service</li>
+                            <li><span class="font-semibold">Problem:</span> Flight XYZ has only 1 seat left. Alice and Bob try to book simultaneously.</li>
+                        </ul>
+
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Alice's Transaction</th>
+                                        <th>Bob's Transaction</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>T1</td>
+                                        <td>Read: 1 seat available</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T2</td>
+                                        <td></td>
+                                        <td>Read: 1 seat available</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T3</td>
+                                        <td>Check payment: $500 OK</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T4</td>
+                                        <td></td>
+                                        <td>Check payment: $500 OK</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T5</td>
+                                        <td>Book seat (1 -> 0)</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T6</td>
+                                        <td></td>
+                                        <td>Book seat (0 -> -1) <span class="text-red-400 font-bold">❌ DISASTER!</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T7</td>
+                                        <td>Commit ✅</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T8</td>
+                                        <td></td>
+                                        <td>Commit ✅</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-lg font-semibold text-red-500 mb-4">Result: OVERBOOKED FLIGHT! 💥</p>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Why This Happens: "Lost Update Problem"</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Both transactions:</li>
+                            <li class="ml-5">Read the same data (1 seat available)</li>
+                            <li class="ml-5">Made decisions based on stale data</li>
+                            <li class="ml-5">Overwrote each other's changes</li>
+                            <li>No coordination between them</li>
+                        </ul>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-6 mb-2">Other Concurrency Problems</h4>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th>Problem</th>
+                                        <th>Description</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Dirty Read</strong></td>
+                                        <td>Reading uncommitted data</td>
+                                        <td>T1 writes qty=0, crashes before commit; T2 reads qty=0 (invalid!)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Non-Repeatable Read</strong></td>
+                                        <td>Same query returns different results</td>
+                                        <td>T1 reads qty=5 twice, but T2 updated it to 3 in between</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Phantom Read</strong></td>
+                                        <td>New rows appear in range queries</td>
+                                        <td>T1 counts 10 orders, T2 inserts 1, T1 counts again -> 11</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Lost Update</strong></td>
+                                        <td>Concurrent writes overwrite each other</td>
+                                        <td>Both Alice and Bob update balance, one update is lost</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- 2. What is 2PL? -->
+                    <section id="what-is-2pl" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">2. What is 2PL?</h2>
+                        <blockquote class="border-l-4 border-cyan-500 pl-4 italic text-gray-400 mb-4 text-lg">
+                            <strong>Two-Phase Locking:</strong> A concurrency control protocol that ensures transactions don't interfere with each other by acquiring and releasing locks in two distinct phases.
+                        </blockquote>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">The Two Phases</h3>
+                        
+                        <h4 class="text-xl font-semibold text-green-400 mt-4 mb-2">Phase 1: Growing Phase (Lock Acquisition) 🟩</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Can:</strong> Acquire locks (shared or exclusive)</li>
+                            <li><strong>Cannot:</strong> Release any locks</li>
+                            <li><strong>Rule:</strong> Once you release even ONE lock, this phase ends forever</li>
+                        </ul>
+
+                        <h4 class="text-xl font-semibold text-red-400 mt-4 mb-2">Phase 2: Shrinking Phase (Lock Release) 🟥</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Can:</strong> Release locks</li>
+                            <li><strong>Cannot:</strong> Acquire new locks</li>
+                            <li><strong>Rule:</strong> Once you start releasing, no going back!</li>
+                        </ul>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-6 mb-2">Analogy: Library Books</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Growing Phase: "I need these 5 books"</h5>
+                                <ul class="list-disc pl-5 text-sm space-y-1">
+                                    <li>Check out Book 1 ✅</li>
+                                    <li>Check out Book 2 ✅</li>
+                                    <li>Check out Book 3 ✅</li>
+                                    <li>Check out Book 4 ✅</li>
+                                    <li>Check out Book 5 ✅</li>
+                                    <li class="text-red-400 font-medium">Cannot return any book yet!</li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Shrinking Phase: "I'm done"</h5>
+                                <ul class="list-disc pl-5 text-sm space-y-1">
+                                    <li>Return Book 1 ✅</li>
+                                    <li>Return Book 2 ✅</li>
+                                    <li>Return Book 3 ✅</li>
+                                    <li>Return Book 4 ✅</li>
+                                    <li>Return Book 5 ✅</li>
+                                    <li class="text-red-400 font-medium">Cannot check out any new books now!</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 3. Lock Types -->
+                    <section id="lock-types" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">3. Lock Types</h2>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">1. Shared Lock (S-Lock) / Read Lock</h3>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Multiple transactions can hold S-Lock on same data</li>
+                            <li><strong>Purpose:</strong> Reading data</li>
+                            <li><strong>Symbol:</strong> <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">S(X)</code> = Shared lock on X</li>
+                            <li><strong>Example:</strong>
+                                <ul class="list-circle pl-5 mt-1">
+                                    <li>T1: S-Lock(balance) -> Read balance -> Others can also read</li>
+                                    <li>T2: S-Lock(balance) -> Read balance -> <span class="text-green-400">Allowed! ✅</span></li>
+                                    <li>T3: X-Lock(balance) -> Write balance -> <span class="text-red-400">BLOCKED! ❌ Must wait</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">2. Exclusive Lock (X-Lock) / Write Lock</h3>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Only ONE</strong> transaction can hold X-Lock on data</li>
+                            <li><strong>Purpose:</strong> Writing data</li>
+                            <li><strong>Symbol:</strong> <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">X(X)</code> = Exclusive lock on X</li>
+                            <li><strong>Example:</strong>
+                                <ul class="list-circle pl-5 mt-1">
+                                    <li>T1: X-Lock(balance) -> Update balance -> Nobody else allowed</li>
+                                    <li>T2: S-Lock(balance) -> Read balance -> <span class="text-red-400">BLOCKED! ❌ Must wait</span></li>
+                                    <li>T3: X-Lock(balance) -> Write balance -> <span class="text-red-400">BLOCKED! ❌ Must wait</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Lock Compatibility Matrix</h3>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full md:w-1/2 border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" class="align-bottom">Existing</th>
+                                        <th colspan="2" class="text-center">Requested Lock</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-center">S-Lock</th>
+                                        <th class="text-center">X-Lock</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>S-Lock</strong></td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                        <td class="text-center text-red-400 text-2xl">❌</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>X-Lock</strong></td>
+                                        <td class="text-center text-red-400 text-2xl">❌</td>
+                                        <td class="text-center text-red-400 text-2xl">❌</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Key Insights:</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Multiple readers can coexist (S + S)</li>
+                            <li>Reader + Writer conflict (S + X)</li>
+                            <li>Writer + Writer conflict (X + X)</li>
+                        </ul>
+                    </section>
+                    
+                    <!-- 4. How 2PL Works -->
+                    <section id="how-2pl-works" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">4. How 2PL Works</h2>
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Example: Flight Booking Fixed with 2PL</h3>
+                        
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Alice's Transaction</th>
+                                        <th>Bob's Transaction</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>T1</td>
+                                        <td>BEGIN TRANSACTION</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T2</td>
+                                        <td><span class="text-green-400">X-LOCK(seat_count) &lt;- Growing</span></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T3</td>
+                                        <td>Read: 1 seat available</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T4</td>
+                                        <td></td>
+                                        <td>BEGIN TRANSACTION</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T5</td>
+                                        <td></td>
+                                        <td><span class="text-yellow-400">X-LOCK(seat_count) ⏳ WAITING!</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T6</td>
+                                        <td>Validate payment: $500 OK</td>
+                                        <td>Still waiting...</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T7</td>
+                                        <td>Update: seat_count = 0</td>
+                                        <td>Still waiting...</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T8</td>
+                                        <td><span class="text-red-400">UNLOCK(seat_count) &lt;- Shrinking</span></td>
+                                        <td>Still waiting...</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T9</td>
+                                        <td>COMMIT ✅</td>
+                                        <td>Still waiting...</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T10</td>
+                                        <td></td>
+                                        <td><span class="text-green-400">X-LOCK acquired! ✅</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>T11</td>
+                                        <td></td>
+                                        <td>Read: 0 seats available</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T12</td>
+                                        <td></td>
+                                        <td>Cannot book! Show error</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T13</td>
+                                        <td></td>
+                                        <td>UNLOCK(seat_count)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>T14</td>
+                                        <td></td>
+                                        <td>COMMIT</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-lg font-semibold text-green-500 mb-4">Result: Alice got the seat, Bob got proper error. ✅</p>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Code Example: PostgreSQL</h3>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Alice's Transaction</span>
+<span class="keyword">BEGIN</span>;
+
+<span class="comment">-- Growing Phase: Acquire exclusive lock</span>
+<span class="keyword">SELECT</span> available_seats
+<span class="keyword">FROM</span> flights
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span>
+<span class="keyword">FOR UPDATE</span>; <span class="comment">-- X-Lock acquired!</span>
+
+<span class="comment">-- Still in Growing Phase: can acquire more locks</span>
+<span class="keyword">SELECT</span> balance
+<span class="keyword">FROM</span> user_wallet
+<span class="keyword">WHERE</span> user_id = <span class="string">'alice'</span>
+<span class="keyword">FOR UPDATE</span>; <span class="comment">-- Another X-Lock!</span>
+
+<span class="comment">-- Perform business logic</span>
+<span class="keyword">UPDATE</span> flights
+<span class="keyword">SET</span> available_seats = available_seats - <span class="number">1</span>
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span>;
+
+<span class="keyword">UPDATE</span> user_wallet
+<span class="keyword">SET</span> balance = balance - <span class="number">500</span>
+<span class="keyword">WHERE</span> user_id = <span class="string">'alice'</span>;
+
+<span class="comment">-- Shrinking Phase begins here</span>
+<span class="keyword">COMMIT</span>; <span class="comment">-- All locks released</span>
+
+<span class="comment">-- Cannot acquire new locks after COMMIT!</span>
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Code Example: MySQL InnoDB</h3>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Bob's Transaction (runs simultaneously with Alice's)</span>
+<span class="keyword">START TRANSACTION</span>;
+
+<span class="comment">-- Tries to acquire lock</span>
+<span class="keyword">SELECT</span> available_seats
+<span class="keyword">FROM</span> flights
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span>
+<span class="keyword">FOR UPDATE</span>;
+
+<span class="comment">-- ⏳ WAITING... blocked by Alice's X-Lock</span>
+<span class="comment">-- InnoDB waits for innodb_lock_wait_timeout (default: 50 seconds)</span>
+
+<span class="comment">-- Once Alice commits, lock is released</span>
+<span class="comment">-- Bob's query returns: available_seats = 0</span>
+
+<span class="comment">-- Bob sees no seats available</span>
+<span class="keyword">IF</span> available_seats = <span class="number">0</span> <span class="keyword">THEN</span>
+  <span class="keyword">ROLLBACK</span>; <span class="comment">-- No booking possible</span>
+  <span class="keyword">RETURN</span> <span class="string">'Flight full'</span>;
+<span class="keyword">END IF</span>;
+
+<span class="keyword">COMMIT</span>;
+</code></pre>
+                    </section>
+
+                    <!-- 5. 2PL in Distributed Systems -->
+                    <section id="distributed-2pl" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">5. 2PL in Distributed Systems</h2>
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">The Challenge</h3>
+                        <p class="mb-4">In microservices, each service has its own database:</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-text">
+  Payment Service     Inventory Service     Order Service
+$$$$$$$$$$$$$$$$$$  $$$$$$$$$$$$$$$$$$$  $$$$$$$$$$$$$$$$$
+( (Database 1)  )   (  (Database 2)   )   (  (Database 3) )
+</code></pre>
+                        <p class="text-lg font-semibold text-red-400 mb-4">Problem: How do you coordinate locks across separate databases?</p>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Solution 1: Distributed 2PL with 2PC (Two-Phase Commit)</h3>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Architecture</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-text">
+        COORDINATOR (Order Service)
+       /        |        \
+      /         |         \
+     /          |          \
+Payment DB  Inventory DB  Order DB
+</code></pre>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Two-Phase Commit Protocol</h4>
+                        <h5 class="text-lg font-semibold text-gray-300 mt-4 mb-2">Phase 1: PREPARE (Voting Phase)</h5>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <thead>
+                                    <tr><th>Time</th><th>Coordinator</th><th>Participants</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>T1</td><td>Write to log: "BEGIN 2PC"</td><td></td></tr>
+                                    <tr><td>T2</td><td>Send PREPARE to all</td><td></td></tr>
+                                    <tr><td>T3</td><td></td><td>Payment: LOCK(user_balance)</td></tr>
+                                    <tr><td>T4</td><td></td><td>Payment: Validate: OK ✅</td></tr>
+                                    <tr><td>T5</td><td></td><td>Payment: Write to log: "READY"</td></tr>
+                                    <tr><td>T6</td><td></td><td>Payment: Reply: VOTE_COMMIT</td></tr>
+                                    <tr><td>T7</td><td></td><td>Inventory: LOCK(product_stock)</td></tr>
+                                    <tr><td>T8</td><td></td><td>Inventory: Validate: OK ✅</td></tr>
+                                    <tr><td>T9</td><td></td><td>Inventory: Write to log: "READY"</td></tr>
+                                    <tr><td>T10</td><td></td><td>Inventory: Reply: VOTE_COMMIT</td></tr>
+                                    <tr><td>T11</td><td></td><td>Order: LOCK(order_id)</td></tr>
+                                    <tr><td>T12</td><td></td><td>Order: Write to log: "READY"</td></tr>
+                                    <tr><td>T13</td><td></td><td>Order: Reply: VOTE_COMMIT</td></tr>
+                                    <tr><td>T14</td><td>Collect all votes</td><td></td></tr>
+                                    <tr><td>T15</td><td>All voted COMMIT? ✅</td><td></td></tr>
+                                    <tr><td>T16</td><td>Write to log: "COMMIT"</td><td></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h5 class="text-lg font-semibold text-gray-300 mt-4 mb-2">Phase 2: COMMIT (Decision Phase)</h5>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <!-- Table content from markdown -->
+                                <thead>
+                                    <tr><th>Time</th><th>Coordinator</th><th>Participants</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>T17</td><td>Send COMMIT to all</td><td></td></tr>
+                                    <tr><td>T18</td><td></td><td>Payment: Deduct $900</td></tr>
+                                    <tr><td>T19</td><td></td><td>Payment: UNLOCK(user_balance)</td></tr>
+                                    <tr><td>T20</td><td></td><td>Payment: COMMIT</td></tr>
+                                    <tr><td>T21</td><td></td><td>Payment: Reply: ACK</td></tr>
+                                    <tr><td>T22</td><td></td><td>Inventory: Reduce stock</td></tr>
+                                    <tr><td>T23</td><td></td><td>Inventory: UNLOCK(product_stock)</td></tr>
+                                    <tr><td>T24</td><td></td><td>Inventory: COMMIT</td></tr>
+                                    <tr><td>T25</td><td></td><td>Inventory: Reply: ACK</td></tr>
+                                    <tr><td>T26</td><td></td><td>Order: Create order</td></tr>
+                                    <tr><td>T27</td><td></td><td>Order: UNLOCK(order_id)</td></tr>
+                                    <tr><td>T28</td><td></td><td>Order: COMMIT</td></tr>
+                                    <tr><td>T29</td><td></td><td>Order: Reply: ACK</td></tr>
+                                    <tr><td>T30</td><td>Write to log: "COMPLETE"</td><td></td></tr>
+                                    <tr><td>T31</td><td>Transaction SUCCESS! ✅</td><td></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h5 class="text-lg font-semibold text-gray-300 mt-4 mb-2">Abort Scenario</h5>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <!-- Table content from markdown -->
+                                <thead>
+                                    <tr><th>Time</th><th>Coordinator</th><th>Participants</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>T1</td><td>Send PREPARE to all</td><td></td></tr>
+                                    <tr><td>T2</td><td></td><td>Payment: LOCK(user_balance)</td></tr>
+                                    <tr><td>T3</td><td></td><td>Payment: Check: balance = $100 ❌</td></tr>
+                                    <tr><td>T4</td><td></td><td>Payment: Insufficient funds!</td></tr>
+                                    <tr><td>T5</td><td></td><td>Payment: Reply: VOTE_ABORT</td></tr>
+                                    <tr><td>T6</td><td>Received ABORT vote</td><td></td></tr>
+                                    <tr><td>T7</td><td>Write to log: "ABORT"</td><td></td></tr>
+                                    <tr><td>T8</td><td>Send ROLLBACK to all</td><td></td></tr>
+                                    <tr><td>T9</td><td></td><td>Payment: UNLOCK(user_balance)</td></tr>
+                                    <tr><td>T10</td><td></td><td>Payment: ROLLBACK</td></tr>
+                                    <tr><td>T11</td><td></td><td>Inventory: UNLOCK(product_stock)</td></tr>
+                                    <tr><td>T12</td><td></td><td>Inventory: ROLLBACK</td></tr>
+                                    <tr><td>T13</td><td></td><td>Order: UNLOCK(order_id)</td></tr>
+                                    <tr><td>T14</td><td></td><td>Order: ROLLBACK</td></tr>
+                                    <tr><td>T15</td><td>Transaction FAILED ❌</td><td></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h5 class="text-lg font-semibold text-red-400 mt-4 mb-2">Critical Problem: Coordinator Crash</h5>
+                        <p class="mb-4"><strong>Scenario:</strong></p>
+                        <ol class="list-decimal pl-5 mb-4">
+                            <li>Coordinator sends PREPARE</li>
+                            <li>All participants lock resources and vote COMMIT</li>
+                            <li><strong>COORDINATOR CRASHES</strong> before sending COMMIT/ROLLBACK</li>
+                            <li><strong>PARTICIPANTS are stuck holding locks! -> BLOCKING PROBLEM</strong></li>
+                        </ol>
+                        <p class="mb-2"><strong>Solution A: Timeout + Abort</strong></p>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Participants timeout after X seconds</li>
+                            <li>Assume coordinator crashed</li>
+                            <li>ABORT and release locks</li>
+                        </ul>
+                        <p class="mb-2"><strong>Solution B: Write-Ahead Logging</strong></p>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Coordinator logs every step to disk</li>
+                            <li>On restart, read log</li>
+                            <li>If log shows "COMMIT" decision -> complete COMMIT</li>
+                            <li>If log incomplete -> ABORT</li>
+                        </ul>
+                        <p class="mb-2"><strong>Solution C: 3PC (Three-Phase Commit)</strong></p>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Adds "PRE-COMMIT" phase</li>
+                            <li>Participants know coordinator decided COMMIT</li>
+                            <li>Can complete without coordinator (non-blocking)</li>
+                        </ul>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">2PC Pros & Cons</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg border border-green-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Pros:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>✅ Strong consistency (ACID across services)</li>
+                                    <li>✅ All-or-nothing guarantee</li>
+                                    <li>✅ No lost updates</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Cons:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>❌ Blocking: Participants hold locks during network delay</li>
+                                    <li>❌ Slow: Multiple round-trips required</li>
+                                    <li>❌ Single point of failure: Coordinator crash is problematic</li>
+                                    <li>❌ Scalability: Doesn't scale well with many participants</li>
+                                    <li>❌ Availability: One participant down = entire transaction fails</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-4"><span class="font-semibold">When to Use:</span> Banking (inter-bank transfers), Critical financial transactions, Legal/compliance requirements. <strong class="text-yellow-400">Rare in modern microservices!</strong></p>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-10 mb-3">Solution 2: Saga Pattern</h3>
+                        <blockquote class="border-l-4 border-cyan-500 pl-4 italic text-gray-400 mb-4 text-lg">
+                            <strong>Philosophy:</strong> Instead of distributed locks, use compensating transactions.
+                        </blockquote>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Choreography Saga</h4>
+                        <p class="mb-4"><strong>Scenario:</strong> E-commerce order (Payment -> Inventory -> Shipping)</p>
+                        <ul class="list-decimal pl-5 mb-4 space-y-2">
+                            <li><strong>Payment Service</strong>
+                                <ul class="list-disc pl-5 mt-1">
+                                    <li>Reserve $900 from user wallet</li>
+                                    <li>Publish event: "PaymentReserved"</li>
+                                    <li>COMMIT immediately (no waiting!) ✅</li>
+                                    <li><span class="text-yellow-400">Compensation:</span> Refund $900 if later steps fail</li>
+                                </ul>
+                            </li>
+                            <li><strong>Inventory Service</strong> (listens to PaymentReserved)
+                                <ul class="list-disc pl-5 mt-1">
+                                    <li>Reduce iPhone stock: 1 -> 0</li>
+                                    <li>Publish event: "InventoryReserved"</li>
+                                    <li>COMMIT immediately ✅</li>
+                                    <li><span class="text-yellow-400">Compensation:</span> Restore stock if later steps fail</li>
+                                </ul>
+                            </li>
+                            <li><strong>Shipping Service</strong> (listens to InventoryReserved)
+                                <ul class="list-disc pl-5 mt-1">
+                                    <li>Schedule delivery</li>
+                                    <li>Publish event: "ShippingScheduled"</li>
+                                    <li>COMMIT immediately ✅</li>
+                                    <li><span class="text-yellow-400">Compensation:</span> Cancel shipment if needed</li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <p class="text-lg font-semibold text-green-500 mb-4">All steps succeeded -> Order complete! 🎉</p>
+
+                        <h5 class="text-lg font-semibold text-gray-300 mt-4 mb-2">Saga Rollback Flow</h5>
+                        <p class="mb-4">If Step 3 (Shipping) fails:</p>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <!-- Table content from markdown -->
+                                <thead>
+                                    <tr><th>Time</th><th>Event</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>T1</td><td>Shipping Service fails to schedule</td></tr>
+                                    <tr><td>T2</td><td>Publish event: "ShippingFailed"</td></tr>
+                                    <tr><td>T3</td><td>Inventory Service receives event</td></tr>
+                                    <tr><td>T4</td><td>Execute compensation: Restore stock (0 -> 1)</td></tr>
+                                    <tr><td>T5</td><td>Publish event: "InventoryRestored"</td></tr>
+                                    <tr><td>T6</td><td>Payment Service receives event</td></tr>
+                                    <tr><td>T7</td><td>Execute compensation: Refund $900</td></tr>
+                                    <tr><td>T8</td><td>Publish event: "PaymentRefunded"</td></tr>
+                                    <tr><td>T9</td><td>Order Service marks order as "CANCELLED"</td></tr>
+                                    <tr><td>T10</td><td>Notify user: "Order failed, refund processed"</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Orchestration Saga</h4>
+                        <p class="mb-4">Central Orchestrator (Order Service) controls the flow:</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-text">
+BEGIN SAGA
+  |
+  +--- Call Payment Service: Reserve $900
+  |      +--- Success? Continue : ABORT
+  |
+  +--- Call Inventory Service: Reserve iPhone
+  |      +--- Success? Continue : Compensate Payment + ABORT
+  |
+  +--- Call Shipping Service: Schedule delivery
+  |      +--- Success? Complete : Compensate Inventory + Payment + ABORT
+  |
+END SAGA
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Saga Pros & Cons</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg border border-green-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Pros:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>✅ No distributed locks (better performance)</li>
+                                    <li>✅ Each service commits immediately</li>
+                                    <li>✅ Services loosely coupled</li>
+                                    <li>✅ Scales well</li>
+                                    <li>✅ Failure of one service doesn't block others</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Cons:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>❌ Eventual consistency (not immediate)</li>
+                                    <li>❌ Users might see intermediate states</li>
+                                    <li>❌ Complex compensation logic</li>
+                                    <li>❌ No rollback guarantee (compensation might fail!)</li>
+                                    <li>❌ Ordering/timing issues</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-4"><span class="font-semibold">When to Use:</span> Modern microservices architectures, Long-running workflows, When availability > consistency, E-commerce, social media, content platforms.</p>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-10 mb-3">Comparison: 2PC vs Saga</h3>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th>Aspect</th>
+                                        <th>2PC (Distributed 2PL)</th>
+                                        <th>Saga</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Consistency</strong></td>
+                                        <td>Strong (ACID)</td>
+                                        <td>Eventual</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Locks</strong></td>
+                                        <td>Yes (distributed)</td>
+                                        <td>No locks</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Performance</strong></td>
+                                        <td>Slow (blocking)</td>
+                                        <td>Fast (non-blocking)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Availability</strong></td>
+                                        <td>Low (one failure blocks all)</td>
+                                        <td>High (failures isolated)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Complexity</strong></td>
+                                        <td>Protocol complexity</td>
+                                        <td>Business logic complexity</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Use Case</strong></td>
+                                        <td>Banking, critical financial</td>
+                                        <td>E-commerce, social media</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Isolation</strong></td>
+                                        <td>Full isolation</td>
+                                        <td>No isolation (visible intermediate states)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Rollback</strong></td>
+                                        <td>Automatic</td>
+                                        <td>Manual compensations</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- 6. Real Database Implementations -->
+                    <section id="db-implementations" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">6. Real Database Implementations</h2>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">PostgreSQL</h3>
+                        <p class="mb-4">PostgreSQL uses <strong>MVCC (Multi-Version Concurrency Control) + 2PL</strong>.</p>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Lock Types</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Shared Lock (S-Lock)</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR SHARE</span>;
+<span class="comment">-- Other transactions can read, but not write</span>
+
+<span class="comment">-- Exclusive Lock (X-Lock)</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE</span>;
+<span class="comment">-- Other transactions cannot read or write (must wait)</span>
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Isolation Levels</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- 1. READ UNCOMMITTED (PostgreSQL treats as READ COMMITTED)</span>
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED</span>;
+
+<span class="comment">-- 2. READ COMMITTED (Default)</span>
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL READ COMMITTED</span>;
+<span class="comment">-- Each query sees snapshot at query start time</span>
+
+<span class="comment">-- 3. REPEATABLE READ</span>
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL REPEATABLE READ</span>;
+<span class="comment">-- Transaction sees snapshot at transaction start time</span>
+
+<span class="comment">-- 4. SERIALIZABLE (Strictest - uses 2PL)</span>
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL SERIALIZABLE</span>;
+<span class="comment">-- Transactions appear to run serially</span>
+</code></pre>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Example: Ticket Booking</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Session 1: Alice booking seat</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL SERIALIZABLE</span>;
+
+<span class="comment">-- Growing Phase: Acquire X-Lock</span>
+<span class="keyword">SELECT</span> seat_number, status
+<span class="keyword">FROM</span> seats
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span> <span class="keyword">AND</span> seat_number = <span class="string">'12A'</span>
+<span class="keyword">FOR UPDATE</span>;
+<span class="comment">-- Returns: { seat_number: '12A', status: 'AVAILABLE' }</span>
+
+<span class="comment">-- Business logic</span>
+<span class="keyword">UPDATE</span> seats
+<span class="keyword">SET</span> status = <span class="string">'BOOKED'</span>, passenger_id = <span class="string">'alice'</span>, booked_at = <span class="function">NOW()</span>
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span> <span class="keyword">AND</span> seat_number = <span class="string">'12A'</span>;
+
+<span class="comment">-- Shrinking Phase: Release locks</span>
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Session 2: Bob trying same seat (simultaneously)</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL SERIALIZABLE</span>;
+
+<span class="comment">-- Tries to acquire X-Lock</span>
+<span class="keyword">SELECT</span> seat_number, status
+<span class="keyword">FROM</span> seats
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span> <span class="keyword">AND</span> seat_number = <span class="string">'12A'</span>
+<span class="keyword">FOR UPDATE</span>;
+
+<span class="comment">-- BLOCKED! Waiting for Alice's transaction...</span>
+<span class="comment">-- Once Alice commits, this query returns:</span>
+<span class="comment">-- { seat_number: '12A', status: 'BOOKED', passenger_id: 'alice' }</span>
+
+<span class="comment">-- Bob's application sees seat is booked</span>
+<span class="keyword">ROLLBACK</span>;
+<span class="comment">-- Show user: "Seat already booked, please select another"</span>
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Deadlock Detection</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Session 1</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">UPDATE</span> accounts <span class="keyword">SET</span> balance = balance - <span class="number">100</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>; <span class="comment">-- Lock row 1</span>
+<span class="comment">-- Now tries to lock row 2...</span>
+<span class="keyword">UPDATE</span> accounts <span class="keyword">SET</span> balance = balance + <span class="number">100</span> <span class="keyword">WHERE</span> id = <span class="number">2</span>; <span class="comment">-- ⏳ WAITING</span>
+
+<span class="comment">-- Session 2 (simultaneously)</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">UPDATE</span> accounts <span class="keyword">SET</span> balance = balance + <span class="number">100</span> <span class="keyword">WHERE</span> id = <span class="number">2</span>; <span class="comment">-- Lock row 2</span>
+<span class="comment">-- Now tries to lock row 1...</span>
+<span class="keyword">UPDATE</span> accounts <span class="keyword">SET</span> balance = balance - <span class="number">100</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>; <span class="comment">-- ⏳ WAITING</span>
+
+<span class="comment">-- PostgreSQL's deadlock detector runs (every 1 second)</span>
+<span class="comment">-- Detects cycle: T1 -> T2 -> T1</span>
+<span class="comment">-- Aborts one transaction:</span>
+</code></pre>
+                        <pre class="bg-gray-800 text-sm text-red-300 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-text">
+ERROR:  deadlock detected
+DETAIL: Process 12345 waits for ShareLock on transaction 67890;
+        blocked by process 12346.
+        Process 12346 waits for ShareLock on transaction 67889;
+        blocked by process 12345.
+HINT:   See server log for query details.
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">PostgreSQL Lock Manager</h4>
+                        <p class="mb-2"><strong>Lock Hierarchy:</strong></p>
+                        <ul class="list-disc pl-5 mb-2">
+                            <li><strong>Table-level locks</strong>
+                                <ul class="list-circle pl-5">
+                                    <li>ACCESS SHARE (least restrictive) ... ACCESS EXCLUSIVE (most restrictive)</li>
+                                </ul>
+                            </li>
+                            <li><strong>Row-level locks (most common)</strong>
+                                <ul class="list-circle pl-5">
+                                    <li>FOR SHARE (S-Lock)</li>
+                                    <li>FOR UPDATE (X-Lock)</li>
+                                </ul>
+                            </li>
+                            <li><strong>Advisory locks (application-controlled)</strong>
+                                <ul class="list-circle pl-5">
+                                    <li>pg_advisory_lock(key)</li>
+                                    <li>pg_advisory_unlock(key)</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-10 mb-3">MySQL InnoDB</h3>
+                        <p class="mb-4">InnoDB uses <strong>MVCC + 2PL</strong>.</p>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Lock Types</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Shared Lock</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">LOCK IN SHARE MODE</span>;
+
+<span class="comment">-- Exclusive Lock</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE</span>;
+
+<span class="comment">-- Gap Locks (prevent phantom reads)</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> price > <span class="number">100</span> <span class="keyword">FOR UPDATE</span>;
+<span class="comment">-- Locks the range, not just existing rows</span>
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Example: Inventory Management</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Transaction 1: Customer buying last iPhone</span>
+<span class="keyword">START TRANSACTION</span>;
+<span class="comment">-- Tries to acquire X-Lock</span>
+<span class="keyword">SELECT</span> quantity
+<span class="keyword">FROM</span> inventory
+<span class="keyword">WHERE</span> product_id = <span class="string">'iPhone13'</span>
+<span class="keyword">FOR UPDATE</span>;
+<span class="comment">-- Returns: { quantity: 1 }</span>
+
+<span class="comment">-- Validate and update</span>
+<span class="keyword">UPDATE</span> inventory
+<span class="keyword">SET</span> quantity = quantity - <span class="number">1</span>
+<span class="keyword">WHERE</span> product_id = <span class="string">'iPhone13'</span>;
+
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Transaction 2: Another customer (simultaneous)</span>
+<span class="keyword">START TRANSACTION</span>;
+<span class="comment">-- Tries to acquire X-Lock</span>
+<span class="keyword">SELECT</span> quantity
+<span class="keyword">FROM</span> inventory
+<span class="keyword">WHERE</span> product_id = <span class="string">'iPhone13'</span>
+<span class="keyword">FOR UPDATE</span>;
+
+<span class="comment">-- BLOCKED! Waiting for Transaction 1...</span>
+<span class="comment">-- InnoDB waits for innodb_lock_wait_timeout (default: 50s)</span>
+
+<span class="comment">-- If T1 commits within timeout:</span>
+<span class="comment">-- ... this query returns { quantity: 0 }</span>
+<span class="comment">-- Application shows: "Out of stock"</span>
+
+<span class="comment">-- If timeout expires:</span>
+<span class="comment">ERROR 1205 (HY000): Lock wait timeout exceeded;</span>
+<span class="comment">try restarting transaction</span>
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Deadlock Detection</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- InnoDB has automatic deadlock detection</span>
+
+<span class="comment">-- View recent deadlock</span>
+<span class="keyword">SHOW ENGINE INNODB STATUS</span>\G
+</code></pre>
+                        <pre class="bg-gray-800 text-sm text-gray-300 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-text">
+<span class="comment">-- Example output:</span>
+LATEST DETECTED DEADLOCK
+------------------------
+2025-11-04 10:15:30
+*** (1) TRANSACTION:
+TRANSACTION 12345, ACTIVE 2 sec starting index read
+mysql tables in use 1, locked 1
+LOCK WAIT 2 lock struct(s), heap size 1136, 1 row lock(s)
+MySQL thread id 10, OS thread handle 140123, query id 567
+localhost root updating
+UPDATE accounts SET balance = balance - 100 WHERE id = 2
+
+*** (1) WAITING FOR THIS LOCK TO BE GRANTED:
+RECORD LOCKS space id 45 page no 3 n bits 72 index PRIMARY of table test.accounts
+trx id 12345 lock_mode X locks rec but not gap waiting
+
+*** (2) TRANSACTION:
+TRANSACTION 12346, ACTIVE 2 sec starting index read
+mysql tables in use 1, locked 1
+2 lock struct(s), heap size 1136, 1 row lock(s)
+MySQL thread id 11, OS thread handle 140124, query id 568
+localhost root updating
+UPDATE accounts SET balance = balance + 100 WHERE id = 1
+
+*** (2) HOLDS THE LOCK(S):
+RECORD LOCKS space id 45 page no 3 n bits 72 index PRIMARY of table test.accounts
+trx id 12346 lock_mode X locks rec but not gap
+
+*** WE ROLL BACK TRANSACTION (2)
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-10 mb-3">MongoDB (Document Database)</h3>
+                        <p class="mb-4">MongoDB 4.0+ supports multi-document transactions with 2PL.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">MongoOrderService</span> {
+
+    <span class="comment">@Autowired</span>
+    <span class="keyword">private</span> MongoTemplate mongoTemplate;
+
+    <span class="keyword">public</span> <span class="keyword">void</span> <span class="function">createOrder</span>(String userId, String productId) {
+        <span class="comment">// Start session</span>
+        MongoTransactionManager transactionManager =
+            <span class="keyword">new</span> <span class="function">MongoTransactionManager</span>(mongoTemplate.getMongoDbFactory());
+        
+        TransactionTemplate transactionTemplate =
+            <span class="keyword">new</span> <span class="function">TransactionTemplate</span>(transactionManager);
+
+        transactionTemplate.execute(status -> {
+            <span class="keyword">try</span> {
+                <span class="comment">// Growing Phase: Acquire locks implicitly</span>
+                Query query = <span class="keyword">new</span> <span class="function">Query</span>(
+                    Criteria.where(<span class="string">"productId"</span>).is(productId)
+                            .and(<span class="string">"quantity"</span>).gte(<span class="number">1</span>)
+                );
+
+                Inventory inventory = mongoTemplate.findOne(
+                    query,
+                    Inventory.class
+                );
+
+                <span class="keyword">if</span> (inventory == <span class="keyword">null</span>) {
+                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">OutOfStockException</span>(<span class="string">"Out of stock"</span>);
+                }
+
+                <span class="comment">// Update inventory</span>
+                Update update = <span class="keyword">new</span> <span class="function">Update</span>().inc(<span class="string">"quantity"</span>, -<span class="number">1</span>);
+                mongoTemplate.updateFirst(
+                    Query.query(Criteria.where(<span class="string">"productId"</span>).is(productId)),
+                    update,
+                    Inventory.class
+                );
+
+                <span class="comment">// Create order</span>
+                Order order = <span class="keyword">new</span> <span class="function">Order</span>();
+                order.setOrderId(<span class="string">"12345"</span>);
+                order.setProductId(productId);
+                order.setUserId(userId);
+                order.setStatus(<span class="string">"CONFIRMED"</span>);
+                order.setCreatedAt(LocalDateTime.now());
+
+                mongoTemplate.insert(order);
+
+                <span class="comment">// Shrinking Phase: Commit and release locks (automatic)</span>
+                log.info(<span class="string">"Order successful!"</span>);
+                <span class="keyword">return</span> <span class="keyword">null</span>;
+
+            } <span class="keyword">catch</span> (Exception e) {
+                <span class="comment">// Abort transaction (automatic rollback)</span>
+                log.error(<span class="string">"Order failed: {}"</span>, e.getMessage());
+                <span class="keyword">throw</span> e;
+            }
+        });
+    }
+}
+</code></pre>
+                    </section>
+                    
+                    <!-- 7. Alternative Approaches -->
+                    <section id="alternatives" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">7. Alternative Approaches</h2>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">1. Optimistic Locking (Optimistic Concurrency Control)</h3>
+                        <blockquote class="border-l-4 border-cyan-500 pl-4 italic text-gray-400 mb-4 text-lg">
+                            <strong>Philosophy:</strong> "Hope for the best, check at commit time"
+                        </blockquote>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">How It Works</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Read data WITHOUT locks</li>
+                            <li>Perform operations locally</li>
+                            <li>At commit time, check if data changed</li>
+                            <li>If changed -> ABORT and retry</li>
+                            <li>If unchanged -> COMMIT</li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Implementation: Version Numbers</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">// E-commerce: Multiple users editing product details</span>
+<span class="comment">// Spring Boot with JPA</span>
+
+<span class="comment">@Entity</span>
+<span class="comment">@Table(name = "products")</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">Product</span> {
+
+    <span class="comment">@Id</span>
+    <span class="keyword">private</span> String id;
+    <span class="keyword">private</span> String name;
+    <span class="keyword">private</span> BigDecimal price;
+
+    <span class="comment">@Version // JPA Optimistic Locking</span>
+    <span class="keyword">private</span> Long version;
+
+    <span class="comment">// Getters and setters</span>
+}
+
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">ProductService</span> {
+
+    <span class="comment">@Autowired</span>
+    <span class="keyword">private</span> ProductRepository productRepository;
+
+    <span class="keyword">public</span> <span class="keyword">void</span> <span class="function">updateProductPrice</span>(String productId, BigDecimal newPrice) {
+        <span class="keyword">try</span> {
+            <span class="comment">// Step 1: Read data with version (automatic)</span>
+            Product product = productRepository.findById(productId)
+                .orElseThrow(() -> <span class="keyword">new</span> <span class="function">ProductNotFoundException</span>());
+            <span class="comment">// Product: { id: 'iphone13', price: 999, version: 42 }</span>
+
+            <span class="comment">// Step 2: User edits locally (no locks held!)</span>
+            <span class="comment">// Sale price: 899</span>
+            product.setPrice(newPrice);
+
+            <span class="comment">// Step 3: Try to update with version check (automatic)</span>
+            productRepository.save(product);
+            <span class="comment">// JPA automatically checks:</span>
+            <span class="comment">// WHERE id = 'iphone13' AND version = 42</span>
+            <span class="comment">// And increments: SET price = 899, version = 43</span>
+            
+            <span class="comment">// Success! Updated: version 42 -> 43</span>
+
+        } <span class="keyword">catch</span> (OptimisticLockException e) {
+            <span class="comment">// Version mismatch! Someone else updated it!</span>
+            <span class="comment">// Show user: "Product was updated by another user. Reload and try again."</span>
+            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">ConcurrentModificationException</span>(
+                <span class="string">"Product was updated by another user. Please reload and try again."</span>
+            );
+        }
+    }
+}
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Implementation: Timestamps</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- PostgreSQL example</span>
+<span class="keyword">CREATE TABLE</span> products (
+    id <span class="keyword">SERIAL PRIMARY KEY</span>,
+    name <span class="keyword">VARCHAR</span>(<span class="number">255</span>),
+    price <span class="keyword">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),
+    updated_at <span class="keyword">TIMESTAMP DEFAULT</span> <span class="function">NOW()</span>
+);
+
+<span class="comment">-- Read data</span>
+<span class="keyword">SELECT</span> id, name, price, updated_at <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> id = <span class="number">123</span>;
+<span class="comment">-- { id: 123, name: 'iPhone', price: 999, updated_at: '2025-11-04 10:00:00' }</span>
+
+<span class="comment">-- Update with timestamp check</span>
+<span class="keyword">UPDATE</span> products
+<span class="keyword">SET</span>
+    price = <span class="number">899</span>,
+    updated_at = <span class="function">NOW()</span>
+<span class="keyword">WHERE</span>
+    id = <span class="number">123</span>
+    <span class="keyword">AND</span> updated_at = <span class="string">'2025-11-04 10:00:00'</span>; <span class="comment">-- Check timestamp</span>
+
+<span class="comment">-- If 0 rows affected -> conflict!</span>
+<span class="comment">-- If 1 row affected -> success!</span>
+</code></pre>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Race Condition Example</h4>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full min-w-lg border-collapse">
+                                <!-- Table content from markdown -->
+                                <thead>
+                                    <tr><th>Time</th><th>Alice (Thread 1)</th><th>Bob (Thread 2)</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>T1</td><td>Read: price=999, version=42</td><td></td></tr>
+                                    <tr><td>T2</td><td></td><td>Read: price=999, version=42</td></tr>
+                                    <tr><td>T3</td><td>Calculate: newPrice=899</td><td></td></tr>
+                                    <tr><td>T4</td><td></td><td>Calculate: newPrice=879</td></tr>
+                                    <tr><td>T5</td><td>save() -> version=42 ✅</td><td></td></tr>
+                                    <tr><td>T6</td><td>New state: price=899, version=43</td><td></td></tr>
+                                    <tr><td>T7</td><td></td><td>save() -> version=42 ❌</td></tr>
+                                    <tr><td>T8</td><td></td><td>OptimisticLockException thrown!</td></tr>
+                                    <tr><td>T9</td><td></td><td>Retry: Read version=43</td></tr>
+                                    <tr><td>T10</td><td></td><td>Show merge conflict UI</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Optimistic Locking Pros & Cons</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg border border-green-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Pros:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>✅ No locks = better performance</li>
+                                    <li>✅ No deadlocks possible</li>
+                                    <li>✅ Great for low-contention scenarios</li>
+                                    <li>✅ Simple implementation</li>
+                                    <li>✅ No blocking</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Cons:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>❌ High contention = many retries (bad UX)</li>
+                                    <li>❌ Wasted work (compute, then discard)</li>
+                                    <li>❌ Not suitable for critical operations (booking, payments)</li>
+                                    <li>❌ ABA problem possible</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-4"><span class="font-semibold">When to Use:</span> Low-contention scenarios, User profile edits, Document editing, Shopping cart updates, Settings/preferences, Non-critical data.</p>
+                        <p class="mt-1"><span class="font-semibold">When Not to Use:</span> High contention (ticket booking, flash sales), Financial transactions, Inventory management, Critical business operations.</p>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-10 mb-3">2. MVCC (Multi-Version Concurrency Control)</h3>
+                        <blockquote class="border-l-4 border-cyan-500 pl-4 italic text-gray-400 mb-4 text-lg">
+                            <strong>Philosophy:</strong> "Everyone gets their own snapshot of data!"
+                        </blockquote>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">How It Works</h4>
+                        <p class="mb-4">Instead of locking, keep multiple versions of each row.</p>
+                        <p class="mb-2"><strong>Timeline of iPhone inventory:</strong></p>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>T1: qty = 5 (version 1) -> Transaction A sees this</li>
+                            <li>T2: qty = 4 (version 2) -> Transaction B updates</li>
+                            <li>T3: qty = 3 (version 3) -> Transaction C updates</li>
+                            <li>T4: qty = 2 (version 4) -> Current version</li>
+                        </ul>
+                        <p class="mb-4">Transaction A started at T1, so it sees version 1 throughout! Transaction D starting now sees version 4.</p>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Implementation Details</h4>
+                        <p class="mb-2">Each row has hidden metadata:</p>
+                        <p><strong>Logical View:</strong></p>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full md:w-1/2 border-collapse">
+                                <thead><tr><th>id</th><th>name</th><th>qty</th></tr></thead>
+                                <tbody><tr><td>1</td><td>iPhone</td><td>5</td></tr></tbody>
+                            </table>
+                        </div>
+                        <p><strong>Physical Storage (PostgreSQL):</strong></p>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full border-collapse">
+                                <thead><tr><th>id</th><th>name</th><th>qty</th><th>txn_min</th><th>txn_max</th><th>visible?</th></tr></thead>
+                                <tbody>
+                                    <tr><td>1</td><td>iPhone</td><td>5</td><td>txn_100</td><td>txn_102</td><td>old</td></tr>
+                                    <tr><td>1</td><td>iPhone</td><td>4</td><td>txn_102</td><td>txn_105</td><td>old</td></tr>
+                                    <tr><td>1</td><td>iPhone</td><td>3</td><td>txn_105</td><td>NULL</td><td>current</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">xmin</code>: Transaction that created this version</li>
+                            <li><code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">xmax</code>: Transaction that deleted this version (NULL = current)</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Example: Read-Write Concurrency</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Transaction A (Reader)</span>
+<span class="comment">-- Snapshot at T1</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> qty <span class="keyword">FROM</span> inventory <span class="keyword">WHERE</span> id = <span class="number">1</span>;
+<span class="comment">-- Returns: 5 (Version 1)</span>
+
+<span class="comment">-- Wait for 5 seconds... (simulating long-running query)</span>
+
+<span class="comment">-- Transaction B (Writer) - runs during A's wait</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">UPDATE</span> inventory <span class="keyword">SET</span> qty = <span class="number">4</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>; <span class="comment">-- Creates Version 2</span>
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Transaction C (Writer) - also runs during A's wait</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">UPDATE</span> inventory <span class="keyword">SET</span> qty = <span class="number">3</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>; <span class="comment">-- Creates Version 3</span>
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Transaction A (Reader) - continues</span>
+<span class="keyword">SELECT</span> qty <span class="keyword">FROM</span> inventory <span class="keyword">WHERE</span> id = <span class="number">1</span>;
+<span class="comment">-- Still returns: 5 (same snapshot!)</span>
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- NEW Transaction D</span>
+<span class="comment">-- Snapshot at current time</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> qty <span class="keyword">FROM</span> inventory <span class="keyword">WHERE</span> id = <span class="number">1</span>;
+<span class="comment">-- Returns: 3 (latest version) ✅</span>
+<span class="keyword">COMMIT</span>;
+</code></pre>
+                        <p class="text-lg font-semibold text-green-500 mb-4">Key Insight: Readers never block writers, writers never block readers!</p>
+                        
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Write-Write Conflicts</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Transaction 1</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">UPDATE</span> inventory <span class="keyword">SET</span> qty = <span class="number">0</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>; <span class="comment">-- Don't commit yet</span>
+
+<span class="comment">-- Transaction 2 (simultaneously)</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">UPDATE</span> inventory <span class="keyword">SET</span> qty = <span class="number">0</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>; <span class="comment">-- Tries to update same row</span>
+
+<span class="comment">-- ⏳ BLOCKED! Must wait for Transaction 1</span>
+
+<span class="comment">-- If T1 commits:</span>
+<span class="comment">-- T2 proceeds with update (based on T1's result)</span>
+
+<span class="comment">-- If T1 aborts:</span>
+<span class="comment">-- T2 proceeds with update (based on original value)</span>
+</code></pre>
+                        <p class="text-lg font-semibold text-yellow-400 mb-4">MVCC doesn't prevent write-write conflicts! Uses 2PL for writes.</p>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Garbage Collection (VACUUM)</h4>
+                        <p class="mb-4">Old versions accumulate over time. PostgreSQL VACUUM removes dead tuples.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Manual vacuum</span>
+<span class="keyword">VACUUM</span> inventory;
+
+<span class="comment">-- Auto-vacuum (default: enabled)</span>
+<span class="comment">-- Runs automatically in background</span>
+</code></pre>
+
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">MVCC Pros & Cons</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg border border-green-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Pros:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>✅ Readers don't block writers</li>
+                                    <li>✅ Writers don't block readers</li>
+                                    <li>✅ Excellent for read-heavy workloads</li>
+                                    <li>✅ Time-travel queries possible</li>
+                                    <li>✅ No lock contention for reads</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Cons:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>❌ More storage (multiple versions)</li>
+                                    <li>❌ Vacuum/cleanup needed</li>
+                                    <li>❌ Write-write conflicts still need locking</li>
+                                    <li>❌ Long-running transactions can bloat storage</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-4"><span class="font-semibold">When to Use:</span> Read-heavy applications (blogs, news sites), Analytics and reporting, Default in most modern databases (PostgreSQL, MySQL InnoDB).</p>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-10 mb-3">3. Timestamp Ordering (TO)</h3>
+                        <blockquote class="border-l-4 border-cyan-500 pl-4 italic text-gray-400 mb-4 text-lg">
+                            <strong>Philosophy:</strong> "Order transactions by timestamp, not locks"
+                        </blockquote>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">How It Works</h4>
+                        <p class="mb-4">Each transaction gets a unique timestamp when it starts:</p>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>T1: timestamp = 100</li>
+                            <li>T2: timestamp = 101</li>
+                            <li>T3: timestamp = 102</li>
+                        </ul>
+                        <p class="mb-4"><strong>Rule:</strong> Transactions must appear to execute in timestamp order</p>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Example</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Transaction T1 (timestamp: 100):</strong>
+                                <ul class="list-circle pl-5">
+                                    <li>Read X -> Timestamp: 95 (data is older, OK) ✅</li>
+                                    <li>Write X -> Timestamp becomes: 100</li>
+                                    <li>Commit</li>
+                                </ul>
+                            </li>
+                            <li><strong>Transaction T2 (timestamp: 99):</strong> <- Started late but has older timestamp
+                                <ul class="list-circle pl-5">
+                                    <li>Read X -> Timestamp: 100 (data is newer!) ❌</li>
+                                    <li><strong>ABORT!</strong> (violates timestamp order)</li>
+                                    <li>Restart with new timestamp</li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Timestamp Ordering Pros & Cons</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg border border-green-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Pros:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>✅ No deadlocks (no cyclic waiting)</li>
+                                    <li>✅ No locks needed</li>
+                                    <li>✅ Good for distributed systems with synchronized clocks</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Cons:</h5>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>❌ Many aborts/restarts</li>
+                                    <li>❌ Requires synchronized clocks</li>
+                                    <li>❌ Starvation possible (old transactions keep aborting)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-4"><span class="font-semibold">When to Use:</span> Distributed databases with atomic clocks (Google Spanner), Research systems. <strong class="text-yellow-400">Rarely used in practice.</strong></p>
+                    </section>
+                    
+                    <!-- 8. Decision Framework -->
+                    <section id="decision-framework" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">8. Decision Framework</h2>
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Choosing the Right Approach</h3>
+                        <pre class="bg-gray-800 text-sm text-cyan-200 p-6 rounded-lg overflow-x-auto mb-4 leading-loose"><code class="language-text">
+                  Is it distributed (microservices)?
+                 /                            \
+               YES                            NO
+                |                              |
+        Consistency critical?            Single Database
+       /                   \                     |
+     YES                   NO              What's the contention?
+      |                     |              /       |       \
+Use 2PC (rare!)    Use Saga (common)    HIGH    MEDIUM     LOW
+                                         |       |          |
+                                        2PL   MVCC+2PL  Optimistic
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Detailed Decision Matrix</h3>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th>Scenario</th>
+                                        <th>Approach</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Ticket booking (high contention)</strong></td>
+                                        <td>2PL + SERIALIZABLE</td>
+                                        <td>Prevent double-booking, high contention needs pessimistic locking</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Bank transfers (distributed)</strong></td>
+                                        <td>2PC or Hybrid</td>
+                                        <td>Strong consistency required for money</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>E-commerce order (distributed)</strong></td>
+                                        <td>Saga with compensations</td>
+                                        <td>Balance consistency and performance</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Blog platform (read-heavy)</strong></td>
+                                        <td>MVCC</td>
+                                        <td>Readers don't block writers</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>User profile edits (low contention)</strong></td>
+                                        <td>Optimistic Locking</td>
+                                        <td>Low conflict rate, better performance</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Analytics dashboard (read-only)</strong></td>
+                                        <td>MVCC + READ COMMITTED</td>
+                                        <td>No writes, eventual consistency OK</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Flash sale (extreme contention)</strong></td>
+                                        <td>Queue + 2PL</td>
+                                        <td>Serialize access, prevent thundering herd</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Social media feed</strong></td>
+                                        <td>Eventual consistency (no locking)</td>
+                                        <td>Availability > Consistency</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Critical Path vs Non-Critical Path</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-gray-800 p-4 rounded-lg border border-red-700">
+                                <h5 class="font-semibold text-lg text-red-400 mb-2">Critical Path (Use Strong Consistency):</h5>
+                                <ul class="list-disc pl-5 space-y-1 text-sm">
+                                    <li>Money movement</li>
+                                    <li>Inventory that can sell out</li>
+                                    <li>Seat/ticket booking</li>
+                                    <li>Legal/compliance data</li>
+                                    <li>Security credentials</li>
+                                    <li>Medical records</li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg border border-green-700">
+                                <h5 class="font-semibold text-lg text-green-400 mb-2">Non-Critical Path (Use Eventual Consistency):</h5>
+                                <ul class="list-disc pl-5 space-y-1 text-sm">
+                                    <li>Notifications</li>
+                                    <li>Analytics/metrics</li>
+                                    <li>Caching</li>
+                                    <li>Recommendations</li>
+                                    <li>Social features (likes, shares)</li>
+                                    <li>Audit logs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- 9. Real-World Examples -->
+                    <section id="real-world" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">9. Real-World Examples</h2>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Example 1: Airline Ticket Booking (BookMyShow, Ticketmaster)</h3>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Architecture:</strong> Single Database (PostgreSQL)</li>
+                            <li><strong>Tables:</strong> <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">seats</code>, <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">bookings</code>, <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">payments</code>, <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">users</code></li>
+                            <li><strong>Strategy:</strong> 2PL with temporary reservations + timeouts</li>
+                        </ul>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Step 1: User selects seat</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL SERIALIZABLE</span>;
+
+<span class="comment">-- Growing Phase: Acquire X-Lock</span>
+<span class="keyword">SELECT</span> seat_id, status, reserved_until
+<span class="keyword">FROM</span> seats
+<span class="keyword">WHERE</span> flight_id = <span class="string">'XYZ123'</span>
+  <span class="keyword">AND</span> seat_number = <span class="string">'12A'</span>
+<span class="keyword">FOR UPDATE</span>;
+
+<span class="comment">-- Check availability</span>
+<span class="keyword">IF</span> status = <span class="string">'AVAILABLE'</span> <span class="keyword">OR</span> (status = <span class="string">'RESERVED'</span> <span class="keyword">AND</span> reserved_until < <span class="function">NOW()</span>) <span class="keyword">THEN</span>
+    
+    <span class="comment">-- Mark as temporarily reserved</span>
+    <span class="keyword">UPDATE</span> seats
+    <span class="keyword">SET</span>
+        status = <span class="string">'RESERVED'</span>,
+        reserved_by = <span class="string">'alice'</span>,
+        reserved_until = <span class="function">NOW()</span> + <span class="keyword">INTERVAL</span> <span class="string">'10 minutes'</span>
+    <span class="keyword">WHERE</span> seat_id = <span class="number">123</span>; <span class="comment">-- (Assuming seat_id for '12A' is 123)</span>
+
+    <span class="comment">-- Release lock</span>
+    <span class="keyword">COMMIT</span>;
+    <span class="comment">-- Return to user: "Seat reserved for 10 minutes. Complete payment."</span>
+
+<span class="keyword">ELSE</span>
+    <span class="keyword">ROLLBACK</span>;
+    <span class="comment">-- Return: "Seat unavailable"</span>
+<span class="keyword">END IF</span>;
+
+<span class="comment">-- Step 2: User completes payment (within 10 minutes)</span>
+<span class="keyword">BEGIN</span>;
+
+<span class="comment">-- Acquire lock again</span>
+<span class="keyword">SELECT</span> seat_id, status, reserved_by
+<span class="keyword">FROM</span> seats
+<span class="keyword">WHERE</span> seat_id = <span class="number">123</span>
+<span class="keyword">FOR UPDATE</span>;
+
+<span class="comment">-- Verify still reserved by this user</span>
+<span class="keyword">IF</span> status = <span class="string">'RESERVED'</span> <span class="keyword">AND</span> reserved_by = <span class="string">'alice'</span> <span class="keyword">THEN</span>
+    
+    <span class="comment">-- Process payment...</span>
+    <span class="keyword">INSERT INTO</span> payments (user_id, amount, status)
+    <span class="keyword">VALUES</span> (<span class="string">'alice'</span>, <span class="number">500</span>, <span class="string">'SUCCESS'</span>);
+
+    <span class="comment">-- Confirm booking</span>
+    <span class="keyword">UPDATE</span> seats
+    <span class="keyword">SET</span> status = <span class="string">'BOOKED'</span>, booked_by = <span class="string">'alice'</span>, reserved_until = <span class="keyword">NULL</span>
+    <span class="keyword">WHERE</span> seat_id = <span class="number">123</span>;
+
+    <span class="keyword">INSERT INTO</span> bookings (user_id, seat_id, flight_id, status)
+    <span class="keyword">VALUES</span> (<span class="string">'alice'</span>, <span class="number">123</span>, <span class="string">'XYZ123'</span>, <span class="string">'CONFIRMED'</span>);
+
+    <span class="keyword">COMMIT</span>; ✅
+
+<span class="keyword">ELSE</span>
+    <span class="keyword">ROLLBACK</span>;
+    <span class="comment">-- Reservation expired or taken by someone else</span>
+<span class="keyword">END IF</span>;
+
+<span class="comment">-- Background job: Release expired reservations</span>
+<span class="comment">-- Runs every minute</span>
+<span class="keyword">UPDATE</span> seats
+<span class="keyword">SET</span>
+    status = <span class="string">'AVAILABLE'</span>,
+    reserved_by = <span class="keyword">NULL</span>,
+    reserved_until = <span class="keyword">NULL</span>
+<span class="keyword">WHERE</span>
+    status = <span class="string">'RESERVED'</span>
+    <span class="keyword">AND</span> reserved_until < <span class="function">NOW()</span>;
+</code></pre>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Why This Works:</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>✅ Prevents double-booking (2PL)</li>
+                            <li>✅ User has time to pay (10-minute window)</li>
+                            <li>✅ Seats don't get stuck forever (timeout)</li>
+                            <li>✅ Simple (single database, no distributed transactions)</li>
+                            <li>✅ Fast (locks held only during updates, not during payment processing)</li>
+                        </ul>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Example 2: E-Commerce Order (Amazon, Flipkart)</h3>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Architecture:</strong> Microservices (loosely coupled)</li>
+                            <li><strong>Services:</strong> Order, Payment, Inventory, Shipping, Notification</li>
+                            <li><strong>Implementation:</strong> Hybrid (2PL for critical path + Saga for non-critical)</li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Order Service (Orchestrator)</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">// Order Service: Orchestrator</span>
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">OrderService</span> {
+
+    <span class="comment">@Autowired</span>
+    <span class="keyword">private</span> JdbcTemplate jdbcTemplate;
+
+    <span class="comment">@Autowired</span>
+    <span class="keyword">private</span> TransactionTemplate transactionTemplate;
+
+    <span class="comment">@Autowired</span>
+    <span class="keyword">private</span> ApplicationEventPublisher eventPublisher;
+
+    <span class="keyword">public</span> OrderResult <span class="function">createOrder</span>(String userId, String productId, <span class="keyword">int</span> quantity) {
+    
+        <span class="comment">// CRITICAL PATH: Use 2PL in single transaction</span>
+        <span class="keyword">try</span> {
+            Order order = transactionTemplate.execute(status -> {
+                <span class="comment">// Growing Phase: Acquire locks</span>
+
+                <span class="comment">// Lock user wallet</span>
+                BigDecimal balance = jdbcTemplate.queryForObject(
+                    <span class="string">"SELECT balance FROM wallets WHERE user_id = ? FOR UPDATE"</span>,
+                    BigDecimal.class,
+                    userId
+                );
+
+                <span class="comment">// Lock product inventory</span>
+                Integer stockQuantity = jdbcTemplate.queryForObject(
+                    <span class="string">"SELECT quantity FROM inventory WHERE product_id = ? FOR UPDATE"</span>,
+                    Integer.class,
+                    productId
+                );
+
+                <span class="comment">// Validate</span>
+                BigDecimal price = <span class="keyword">new</span> <span class="function">BigDecimal</span>(<span class="string">"900.00"</span>); <span class="comment">// Example price</span>
+                <span class="keyword">if</span> (balance.compareTo(price) < <span class="number">0</span>) {
+                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">InsufficientFundsException</span>(<span class="string">"Insufficient funds"</span>);
+                }
+                <span class="keyword">if</span> (stockQuantity < quantity) {
+                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">OutOfStockException</span>(<span class="string">"Out of stock"</span>);
+                }
+
+                <span class="comment">// Perform updates</span>
+                jdbcTemplate.update(
+                    <span class="string">"UPDATE wallets SET balance = balance - ? WHERE user_id = ?"</span>,
+                    price, userId
+                );
+
+                jdbcTemplate.update(
+                    <span class="string">"UPDATE inventory SET quantity = quantity - ? WHERE product_id = ?"</span>,
+                    quantity, productId
+                );
+
+                <span class="comment">// Create order</span>
+                KeyHolder keyHolder = <span class="keyword">new</span> <span class="function">GeneratedKeyHolder</span>();
+                jdbcTemplate.update(connection -> {
+                    PreparedStatement ps = connection.prepareStatement(
+                        <span class="string">"INSERT INTO orders (user_id, product_id, status, total) VALUES (?, ?, ?, ?)"</span>,
+                        Statement.RETURN_GENERATED_KEYS
+                    );
+                    ps.setString(<span class="number">1</span>, userId);
+                    ps.setString(<span class="number">2</span>, productId);
+                    ps.setString(<span class="number">3</span>, <span class="string">"CONFIRMED"</span>);
+                    ps.setBigDecimal(<span class="number">4</span>, price);
+                    <span class="keyword">return</span> ps;
+                }, keyHolder);
+
+                Long orderId = keyHolder.getKey().longValue();
+
+                <span class="comment">// Shrinking Phase: Commit and release locks (automatic on return)</span>
+                <span class="keyword">return</span> <span class="keyword">new</span> <span class="function">Order</span>(orderId, userId, productId, <span class="string">"CONFIRMED"</span>, price);
+            });
+
+            <span class="comment">// NON-CRITICAL PATH: Use async Saga (eventual consistency)</span>
+
+            <span class="comment">// Publish event for shipping</span>
+            eventPublisher.publishEvent(<span class="keyword">new</span> <span class="function">OrderCreatedEvent</span>(
+                order.getId(), userId, productId, quantity
+            ));
+            <span class="comment">// Shipping Service (separate microservice) listens and schedules delivery</span>
+            <span class="comment">// If shipping fails -> Compensation: Refund + Restore Inventory</span>
+
+            <span class="comment">// Notification Service sends email (async, eventually)</span>
+            eventPublisher.publishEvent(<span class="keyword">new</span> <span class="function">SendOrderConfirmationEvent</span>(
+                userId, order.getId()
+            ));
+
+            <span class="keyword">return</span> <span class="keyword">new</span> <span class="function">OrderResult</span>(<span class="keyword">true</span>, order.getId(), <span class="keyword">null</span>);
+
+        } <span class="keyword">catch</span> (Exception e) {
+            <span class="comment">// Transaction automatically rolled back</span>
+            <span class="keyword">return</span> <span class="keyword">new</span> <span class="function">OrderResult</span>(<span class="keyword">false</span>, <span class="keyword">null</span>, e.getMessage());
+        }
+    }
+}
+</code></pre>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Shipping Service (Saga participant)</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">ShippingService</span> {
+    <span class="comment">// ... Autowired components ...</span>
+
+    <span class="comment">// Listen for OrderCreated event</span>
+    <span class="comment">@EventListener</span>
+    <span class="comment">@Async</span>
+    <span class="keyword">public</span> <span class="keyword">void</span> <span class="function">handleOrderCreated</span>(OrderCreatedEvent event) {
+        <span class="keyword">try</span> {
+            <span class="comment">// Schedule delivery</span>
+            ShipmentResponse shipment = shippingAPI.schedule(
+                event.getOrderId(),
+                event.getShippingAddress()
+            );
+
+            <span class="comment">// ... save shipment to DB ...</span>
+            
+            <span class="comment">// Publish success event</span>
+            eventPublisher.publishEvent(<span class="keyword">new</span> <span class="function">ShippingScheduledEvent</span>(
+                event.getOrderId(),
+                shipment.getTrackingId()
+            ));
+
+        } <span class="keyword">catch</span> (Exception e) {
+            <span class="comment">// COMPENSATION: Shipping failed!</span>
+            eventPublisher.publishEvent(<span class="keyword">new</span> <span class="function">ShippingFailedEvent</span>(
+                event.getOrderId(),
+                e.getMessage()
+            ));
+        }
+    }
+}
+</code></pre>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Order Service (Compensation handler)</h4>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">OrderCompensationService</span> {
+    <span class="comment">// ... Autowired components ...</span>
+    
+    <span class="comment">@EventListener</span>
+    <span class="comment">@Async</span>
+    <span class="keyword">public</span> <span class="keyword">void</span> <span class="function">handleShippingFailed</span>(ShippingFailedEvent event) {
+        <span class="keyword">try</span> {
+            transactionTemplate.execute(status -> {
+                <span class="comment">// ... Get order details ...</span>
+                
+                <span class="comment">// Refund money</span>
+                jdbcTemplate.update(
+                    <span class="string">"UPDATE wallets SET balance = balance + ? WHERE user_id = ?"</span>,
+                    total, userId
+                );
+
+                <span class="comment">// Restore inventory</span>
+                jdbcTemplate.update(
+                    <span class="string">"UPDATE inventory SET quantity = quantity + ? WHERE product_id = ?"</span>,
+                    quantity, productId
+                );
+
+                <span class="comment">// Cancel order</span>
+                jdbcTemplate.update(
+                    <span class="string">"UPDATE orders SET status = ? WHERE id = ?"</span>,
+                    <span class="string">"CANCELLED"</span>, event.getOrderId()
+                );
+
+                <span class="comment">// Notify user</span>
+                eventPublisher.publishEvent(<span class="keyword">new</span> <span class="function">SendOrderCancellationEvent</span>(
+                    userId,
+                    event.getOrderId(),
+                    <span class="string">"Shipping unavailable. Full refund processed."</span>
+                ));
+
+                <span class="keyword">return</span> <span class="keyword">null</span>;
+            });
+        
+        } <span class="keyword">catch</span> (Exception e) {
+            <span class="comment">// Log critical error -> manual intervention needed!</span>
+            log.error(<span class="string">"COMPENSATION FAILED for order: {}"</span>, event.getOrderId(), e);
+        }
+    }
+}
+</code></pre>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Why This Works:</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>✅ Money protected (2PL for payment + inventory)</li>
+                            <li>✅ Fast user response (don't wait for shipping)</li>
+                            <li>✅ Graceful failure handling (compensation)</li>
+                            <li>✅ Services loosely coupled</li>
+                            <li>✅ Scalable</li>
+                        </ul>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Example 3: Google Spanner (Globally Distributed)</h3>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><strong>Architecture:</strong> Global Distribution (Multiple Data Centers)</li>
+                            <li><strong>Uses:</strong> TrueTime API (atomic clocks + GPS)</li>
+                            <li><strong>Implementation:</strong> 2PL + TrueTime</li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">TrueTime API</h4>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li><code class="math">TT.now() -> [earliest, latest]</code> (uncertainty interval)</li>
+                            <li>Guarantees: actual time $\in$ <code class="math">[earliest, latest]</code></li>
+                            <li>Typical uncertainty: 1-7 milliseconds</li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Transaction Commit Protocol:</h4>
+                        <ol class="list-decimal pl-5 mb-4">
+                            <li>Acquire locks (2PL Growing Phase)</li>
+                            <li>Assign commit timestamp: <code class="math">t_commit</code></li>
+                            <li>Wait until: <code class="math">TT.now().earliest > t_commit</code></li>
+                            <li>Release locks (2PL Shrinking Phase)</li>
+                            <li>Commit is now globally ordered!</li>
+                        </ol>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Why This Is Revolutionary:</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>✅ Globally consistent transactions</li>
+                            <li>✅ No need for 2PC coordinator (atomic clocks provide ordering)</li>
+                            <li>✅ External consistency guaranteed</li>
+                            <li>✅ Read-only transactions don't need locks</li>
+                        </ul>
+                    </section>
+                    
+                    <!-- 10. Common Pitfalls -->
+                    <section id="pitfalls" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">10. Common Pitfalls & Solutions</h2>
+
+                        <h3 class="text-2xl font-semibold text-red-400 mt-6 mb-3">Pitfall 1: Deadlocks</h3>
+                        <p class="mb-4"><strong>Problem:</strong></p>
+                        <ul class="list-disc pl-5 mb-4">
+                            <li>Transaction 1: Lock row A, Tries to lock row B -> ⏳ WAITING</li>
+                            <li>Transaction 2: Lock row B, Tries to lock row A -> ⏳ WAITING</li>
+                            <li>❌ DEADLOCK! Both waiting forever.</li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Solutions:</h4>
+                        <p class="mb-2"><strong>A. Lock Ordering</strong></p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">// ❌ BAD: Inconsistent lock order</span>
+<span class="comment">@Transactional</span>
+<span class="keyword">public</span> <span class="keyword">void</span> <span class="function">transferMoney</span>(Long fromId, Long toId, BigDecimal amount) {
+    jdbcTemplate.update(
+        <span class="string">"UPDATE accounts SET balance = balance - ? WHERE id = ?"</span>,
+        amount, fromId
+    );
+    jdbcTemplate.update(
+        <span class="string">"UPDATE accounts SET balance = balance + ? WHERE id = ?"</span>,
+        amount, toId
+    );
+} <span class="comment">// Risk of deadlock!</span>
+
+<span class="comment">// ✅ GOOD: Always lock in same order (by ID)</span>
+<span class="comment">@Transactional</span>
+<span class="keyword">public</span> <span class="keyword">void</span> <span class="function">transferMoney</span>(Long fromId, Long toId, BigDecimal amount) {
+    <span class="comment">// Determine lock order</span>
+    Long firstId = fromId < toId ? fromId : toId;
+    Long secondId = fromId < toId ? toId : fromId;
+    <span class="keyword">boolean</span> isNormalOrder = fromId < toId;
+
+    <span class="comment">// Lock in consistent order</span>
+    jdbcTemplate.update(
+        <span class="string">"UPDATE accounts SET balance = balance + ? WHERE id = ?"</span>,
+        isNormalOrder ? amount.negate() : amount, firstId
+    ); <span class="comment">// Note: logic corrected to apply correct amount</span>
+    jdbcTemplate.update(
+        <span class="string">"UPDATE accounts SET balance = balance + ? WHERE id = ?"</span>,
+        isNormalOrder ? amount : amount.negate(), secondId
+    );
+}
+</code></pre>
+                        <p class="mb-2"><strong>B. Timeout + Retry</strong></p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- PostgreSQL: Set lock timeout</span>
+<span class="keyword">SET</span> lock_timeout = <span class="string">'5s'</span>;
+
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> accounts <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE</span>;
+<span class="comment">-- If lock not acquired in 5 seconds -> ERROR</span>
+</code></pre>
+                        <p class="mb-2"><strong>C. Deadlock Detection + Retry Logic</strong></p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">AccountService</span> {
+
+    <span class="comment">@Autowired</span>
+    <span class="keyword">private</span> TransactionTemplate transactionTemplate;
+    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MAX_RETRIES = <span class="number">3</span>;
+
+    <span class="keyword">public</span> <span class="keyword">void</span> <span class="function">transferWithRetry</span>(Long fromId, Long toId, BigDecimal amount) {
+        <span class="keyword">int</span> attempts = <span class="number">0</span>;
+        
+        <span class="keyword">while</span> (attempts < MAX_RETRIES) {
+            <span class="keyword">try</span> {
+                transactionTemplate.execute(status -> {
+                    <span class="comment">// ... (Using the "GOOD" lock ordering logic from above) ...</span>
+                    Long firstId = fromId < toId ? fromId : toId;
+                    Long secondId = fromId < toId ? toId : fromId;
+                    <span class="keyword">boolean</span> isNormalOrder = fromId < toId;
+                    
+                    jdbcTemplate.update(
+                        <span class="string">"UPDATE accounts SET balance = balance + ? WHERE id = ?"</span>,
+                        isNormalOrder ? amount.negate() : amount, firstId
+                    );
+                    jdbcTemplate.update(
+                        <span class="string">"UPDATE accounts SET balance = balance + ? WHERE id = ?"</span>,
+                        isNormalOrder ? amount : amount.negate(), secondId
+                    );
+                    <span class="keyword">return</span> <span class="keyword">null</span>;
+                });
+                
+                <span class="comment">// Success - exit retry loop</span>
+                <span class="keyword">return</span>;
+
+            } <span class="keyword">catch</span> (CannotAcquireLockException | DeadlockLoserDataAccessException e) {
+                attempts++;
+                <span class="keyword">if</span> (attempts >= MAX_RETRIES) {
+                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">MaxRetriesExceededException</span>(<span class="string">"..."</span>, e);
+                }
+                <span class="comment">// Exponential backoff</span>
+                <span class="keyword">try</span> {
+                    Thread.sleep((<span class="keyword">long</span>) (Math.random() * <span class="number">1000</span> + Math.pow(<span class="number">2</span>, attempts)));
+                } <span class="keyword">catch</span> (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">RuntimeException</span>(ie);
+                }
+            }
+        }
+    }
+}
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-red-400 mt-6 mb-3">Pitfall 2: Long-Lived Locks</h3>
+                        <p class="mb-4"><strong>Problem:</strong> Lock held during slow external API call.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- ❌ BAD: Lock held during external API call</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> inventory <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE</span>; <span class="comment">-- Lock acquired</span>
+<span class="comment">-- await fetch('https://payment-api.com/process'); -- 5 seconds!</span>
+<span class="comment">-- Lock held during entire API call -> blocks other transactions</span>
+<span class="keyword">UPDATE</span> inventory <span class="keyword">SET</span> quantity = quantity - <span class="number">1</span> <span class="keyword">WHERE</span> id = <span class="number">1</span>;
+<span class="keyword">COMMIT</span>;
+</code></pre>
+                        <p class="mb-2"><strong>Solution:</strong> Minimize lock duration. Read, call API, then lock+write.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">// ✅ GOOD: Minimize lock duration</span>
+<span class="comment">@Service</span>
+<span class="keyword">public</span> <span class="class">class</span> <span class="function">InventoryService</span> {
+    <span class="comment">// ... Autowired ...</span>
+
+    <span class="keyword">public</span> <span class="keyword">void</span> <span class="function">processOrderWithPayment</span>(Long inventoryId, BigDecimal amount) {
+        
+        <span class="comment">// Step 1: Read data without lock</span>
+        Integer originalQty = jdbcTemplate.queryForObject(
+            <span class="string">"SELECT quantity FROM inventory WHERE id = ?"</span>,
+            Integer.class,
+            inventoryId
+        );
+
+        <span class="comment">// Step 2: External API call (no locks held)</span>
+        PaymentResult paymentResult = paymentAPI.process(amount); <span class="comment">// 5 seconds!</span>
+
+        <span class="keyword">if</span> (!paymentResult.isSuccess()) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">PaymentFailedException</span>(<span class="string">"Payment failed"</span>);
+        }
+
+        <span class="comment">// Step 3: Quick update with lock</span>
+        transactionTemplate.execute(status -> {
+            <span class="comment">// Lock acquired</span>
+            Integer currentQty = jdbcTemplate.queryForObject(
+                <span class="string">"SELECT quantity FROM inventory WHERE id = ? FOR UPDATE"</span>,
+                Integer.class,
+                inventoryId
+            );
+
+            <span class="comment">// Verify quantity didn't change (Optimistic check)</span>
+            <span class="keyword">if</span> (!currentQty.equals(originalQty)) {
+                <span class="keyword">throw</span> <span class="keyword">new</span> <span class="function">InventoryChangedException</span>(<span class="string">"..."</span>);
+            }
+
+            <span class="comment">// Update inventory</span>
+            jdbcTemplate.update(
+                <span class="string">"UPDATE inventory SET quantity = quantity - 1 WHERE id = ?"</span>,
+                inventoryId
+            );
+            <span class="keyword">return</span> <span class="keyword">null</span>;
+        });
+        <span class="comment">// Lock released immediately after transaction</span>
+    }
+}
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-red-400 mt-6 mb-3">Pitfall 3: Lock Escalation</h3>
+                        <p class="mb-4"><strong>Problem:</strong> Locking the entire table when only one row is needed.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- ❌ BAD: Locking too many rows</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">FOR UPDATE</span>; <span class="comment">-- Locks entire table!</span>
+<span class="keyword">UPDATE</span> products <span class="keyword">SET</span> price = <span class="number">999</span> <span class="keyword">WHERE</span> id = <span class="number">123</span>;
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- ✅ GOOD: Lock only what you need</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> products <span class="keyword">WHERE</span> id = <span class="number">123</span> <span class="keyword">FOR UPDATE</span>; <span class="comment">-- Lock on 1 row</span>
+<span class="keyword">UPDATE</span> products <span class="keyword">SET</span> price = <span class="number">999</span> <span class="keyword">WHERE</span> id = <span class="number">123</span>;
+<span class="keyword">COMMIT</span>;
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-red-400 mt-6 mb-3">Pitfall 4: Read-Modify-Write Race Condition</h3>
+                        <p class="mb-4"><strong>Problem:</strong> Reading data, modifying it in application code, then writing it back, allowing another transaction to interfere.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">// ❌ BAD: Classic race condition</span>
+<span class="comment">@Transactional</span>
+<span class="keyword">public</span> <span class="keyword">void</span> <span class="function">updateInventory</span>(Long productId) {
+    Integer quantity = jdbcTemplate.queryForObject(
+        <span class="string">"SELECT quantity FROM inventory WHERE id = ?"</span>,
+        Integer.class,
+        productId
+    );
+    <span class="comment">// Another transaction might update here!</span>
+    Integer newQty = quantity - <span class="number">1</span>;
+    jdbcTemplate.update(
+        <span class="string">"UPDATE inventory SET quantity = ? WHERE id = ?"</span>,
+        newQty, productId
+    );
+}
+</code></pre>
+                        <p class="mb-2"><strong>Solution:</strong> Use an atomic update or explicit lock.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-java">
+<span class="comment">// ✅ GOOD: Atomic update</span>
+<span class="comment">@Transactional</span>
+<span class="keyword">public</span> <span class="keyword">void</span> <span class="function">updateInventory</span>(Long productId) {
+    jdbcTemplate.update(
+        <span class="string">"UPDATE inventory SET quantity = quantity - 1 WHERE id = ?"</span>,
+        productId
+    );
+}
+
+<span class="comment">// Or with explicit lock:</span>
+<span class="comment">@Transactional</span>
+<span class="keyword">public</span> <span class="keyword">void</span> <span class="function">updateInventoryWithLock</span>(Long productId) {
+    Integer quantity = jdbcTemplate.queryForObject(
+        <span class="string">"SELECT quantity FROM inventory WHERE id = ? FOR UPDATE"</span>,
+        Integer.class,
+        productId
+    );
+    Integer newQty = quantity - <span class="number">1</span>;
+    jdbcTemplate.update(
+        <span class="string">"UPDATE inventory SET quantity = ? WHERE id = ?"</span>,
+        newQty, productId
+    );
+}
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-red-400 mt-6 mb-3">Pitfall 5: Phantom Reads</h3>
+                        <p class="mb-4"><strong>Problem:</strong> A query returns different rows within the same transaction.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- Transaction 1</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SELECT</span> <span class="function">COUNT</span>(*) <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status = <span class="string">'PENDING'</span>;
+<span class="comment">-- Returns: 10</span>
+
+<span class="comment">-- Transaction 2 (simultaneously)</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">INSERT INTO</span> orders (status) <span class="keyword">VALUES</span> (<span class="string">'PENDING'</span>);
+<span class="keyword">COMMIT</span>;
+
+<span class="comment">-- Transaction 1 (continues)</span>
+<span class="keyword">SELECT</span> <span class="function">COUNT</span>(*) <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status = <span class="string">'PENDING'</span>;
+<span class="comment">-- Returns: 11 (different result!)</span>
+<span class="keyword">COMMIT</span>;
+</code></pre>
+                        <p class="mb-2"><strong>Solution:</strong> Use <code class="bg-gray-700 text-red-300 px-2 py-0.5 rounded">SERIALIZABLE</code> isolation level.</p>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- ✅ Use SERIALIZABLE isolation</span>
+<span class="keyword">BEGIN</span>;
+<span class="keyword">SET TRANSACTION ISOLATION LEVEL SERIALIZABLE</span>;
+<span class="keyword">SELECT</span> <span class="function">COUNT</span>(*) <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status = <span class="string">'PENDING'</span>;
+<span class="comment">-- Locks the range, not just existing rows</span>
+<span class="comment">-- Other transactions cannot insert new PENDING orders</span>
+<span class="keyword">COMMIT</span>;
+</code></pre>
+                    </section>
+                    
+                    <!-- 11. Quick Reference -->
+                    <section id="quick-reference" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">11. Quick Reference</h2>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Transaction Isolation Levels</h3>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th>Level</th>
+                                        <th>Dirty Read</th>
+                                        <th>Non-Repeatable Read</th>
+                                        <th>Phantom Read</th>
+                                        <th>Implementation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>READ UNCOMMITTED</strong></td>
+                                        <td class="text-center text-red-400">✅ Possible</td>
+                                        <td class="text-center text-red-400">✅ Possible</td>
+                                        <td class="text-center text-red-400">✅ Possible</td>
+                                        <td>No locks</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>READ COMMITTED</strong></td>
+                                        <td class="text-center text-green-400">❌ Prevented</td>
+                                        <td class="text-center text-red-400">✅ Possible</td>
+                                        <td class="text-center text-red-400">✅ Possible</td>
+                                        <td>S-Locks released after read</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>REPEATABLE READ</strong></td>
+                                        <td class="text-center text-green-400">❌ Prevented</td>
+                                        <td class="text-center text-green-400">❌ Prevented</td>
+                                        <td class="text-center text-red-400">✅ Possible</td>
+                                        <td>S-Locks held until commit</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>SERIALIZABLE</strong></td>
+                                        <td class="text-center text-green-400">❌ Prevented</td>
+                                        <td class="text-center text-green-400">❌ Prevented</td>
+                                        <td class="text-center text-green-400">❌ Prevented</td>
+                                        <td>Full 2PL + range locks</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Lock Compatibility Quick Reference</h3>
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full md:w-3/4 border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="align-bottom">Current ↓ | Request →</th>
+                                        <th>No Lock</th>
+                                        <th>S-Lock</th>
+                                        <th>X-Lock</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>No Lock</strong></td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>S-Lock</strong></td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                        <td class="text-center text-red-400 text-2xl">❌</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>X-Lock</strong></td>
+                                        <td class="text-center text-green-400 text-2xl">✅</td>
+                                        <td class="text-center text-red-400 text-2xl">❌</td>
+                                        <td class="text-center text-red-400 text-2xl">❌</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">SQL Lock Syntax</h3>
+                        <pre class="bg-gray-800 text-sm text-gray-200 p-4 rounded-lg overflow-x-auto mb-4"><code class="language-sql">
+<span class="comment">-- PostgreSQL</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE</span>;        <span class="comment">-- X-Lock</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR SHARE</span>;         <span class="comment">-- S-Lock</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE NOWAIT</span>; <span class="comment">-- Fail immediately if locked</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE SKIP LOCKED</span>; <span class="comment">-- Skip locked rows</span>
+
+<span class="comment">-- MySQL</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE</span>;        <span class="comment">-- X-Lock</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">LOCK IN SHARE MODE</span>;<span class="comment">-- S-Lock</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE NOWAIT</span>; <span class="comment">-- Fail immediately if locked</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="keyword">table</span> <span class="keyword">WHERE</span> id = <span class="number">1</span> <span class="keyword">FOR UPDATE SKIP LOCKED</span>; <span class="comment">-- Skip locked rows</span>
+</code></pre>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Deadlock Prevention Checklist</h3>
+                        <div class="bg-gray-800 p-4 rounded-lg border border-yellow-700">
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li>✅ Lock resources in consistent order (by ID, alphabetically, etc.)</li>
+                                <li>✅ Keep transactions short</li>
+                                <li>✅ Minimize lock scope (lock only what you need)</li>
+                                <li>✅ Use appropriate isolation level (don't use SERIALIZABLE unless necessary)</li>
+                                <li>✅ Set lock timeouts</li>
+                                <li>✅ Implement retry logic with exponential backoff</li>
+                                <li>✅ Monitor for deadlocks in production</li>
+                            </ul>
+                        </div>
+                        
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Performance Optimization Tips</h3>
+                        <ol class="list-decimal pl-5 mb-4 space-y-2">
+                            <li><strong>Minimize lock duration:</strong>
+                                <ul class="list-disc pl-5">
+                                    <li>Do expensive operations before acquiring locks</li>
+                                    <li>Release locks as soon as possible</li>
+                                </ul>
+                            </li>
+                            <li><strong>Use appropriate lock granularity:</strong>
+                                <ul class="list-disc pl-5">
+                                    <li>Row-level locks > Page-level locks > Table-level locks</li>
+                                </ul>
+                            </li>
+                            <li><strong>Choose right isolation level:</strong>
+                                <ul class="list-disc pl-5">
+                                    <li>READ COMMITTED for most operations</li>
+                                    <li>SERIALIZABLE only when necessary</li>
+                                </ul>
+                            </li>
+                            <li><strong>Consider optimistic locking for low contention:</strong>
+                                <ul class="list-disc pl-5">
+                                    <li>Version numbers or timestamps</li>
+                                    <li>Better performance when conflicts are rare</li>
+                                </ul>
+                            </li>
+                            <li><strong>Use MVCC when available:</strong>
+                                <ul class="list-disc pl-5">
+                                    <li>Default in PostgreSQL, MySQL InnoDB</li>
+                                    <li>Readers don't block writers</li>
+                                </ul>
+                            </li>
+                            <li><strong>Partition hot data:</strong>
+                                <ul class="list-disc pl-5">
+                                    <li>Split high-contention rows across multiple records</li>
+                                    <li>Example: Split wallet balance into multiple sub-accounts</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </section>
+                    
+                    <!-- 12. Key Takeaways -->
+                    <section id="takeaways" class="mt-12">
+                        <h2 class="text-3xl font-semibold text-cyan-300 border-b border-gray-700 pb-2 mb-6">12. Key Takeaways</h2>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">The Golden Rules</h3>
+                        <div class="bg-gray-800 p-6 rounded-lg border border-cyan-700">
+                            <ol class="list-decimal pl-5 space-y-2 font-medium">
+                                <li>2PL guarantees <strong>serializability</strong> - transactions appear to run one-at-a-time</li>
+                                <li><strong>Growing phase + Shrinking phase</strong> - no going back!</li>
+                                <li><strong>Deadlocks are possible</strong> - need detection or prevention</li>
+                                <li><strong>Context matters</strong> - choose based on contention and consistency needs</li>
+                                <li><strong>Trade-offs are everywhere</strong> - consistency vs performance vs availability</li>
+                            </ol>
+                        </div>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">When to Use What</h3>
+                        <ul class="list-disc pl-5 mb-4 space-y-2">
+                            <li><strong>High Contention + Critical Data (money, inventory, bookings):</strong>
+                                <br><span class="ml-4 p-1 bg-red-800 text-red-200 rounded">Use 2PL with SERIALIZABLE isolation</span>
+                            </li>
+                            <li><strong>Read-Heavy Workload:</strong>
+                                <br><span class="ml-4 p-1 bg-blue-800 text-blue-200 rounded">Use MVCC (default in modern databases)</span>
+                            </li>
+                            <li><strong>Low Contention + Non-Critical:</strong>
+                                <br><span class="ml-4 p-1 bg-green-800 text-green-200 rounded">Use Optimistic Locking</span>
+                            </li>
+                            <li><strong>Distributed Services + Strong Consistency:</strong>
+                                <br><span class="ml-4 p-1 bg-yellow-800 text-yellow-200 rounded">Use 2PC (rare) or Hybrid (2PL for critical, Saga for non-critical)</span>
+                            </li>
+                            <li><strong>Distributed Services + Availability Preferred:</strong>
+                                <br><span class="ml-4 p-1 bg-purple-800 text-purple-200 rounded">Use Saga with compensations</span>
+                            </li>
+                        </ul>
+
+                        <h3 class="text-2xl font-semibold text-gray-200 mt-6 mb-3">Mental Model</h3>
+                        <h4 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Consistency Spectrum:</h4>
+                        <pre class="bg-gray-800 text-sm text-cyan-200 p-6 rounded-lg overflow-x-auto mb-4 leading-normal text-center"><code class="language-text">
+STRONG &lt;---------------------------------------------------------------------&gt; WEAK
+  |               |                 |            |            |
+2PL+2PC         2PL (Single)        MVCC     Optimistic     Eventual
+(Distributed)   (Serializable)               Locking      (No locks)
+  |               |                 |            |            |
+Use Case:       |                 |            |            |
+Bank            Ticket            Blog         Profile      Social
+Transfer        Booking           Platform     Edits        Feed
+</code></pre>
+                    </section>
+
+                </div> <!-- End Main Content Section -->
+            </div> <!-- End Main Container -->
+
+        </main> <!-- End Main Content -->
+    </div> <!-- End Flex Container -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('#sidebar-nav a.nav-link');
+        if (sections.length === 0 || navLinks.length === 0) return;
+
+        let currentActiveSectionId = null;
+
+        // Options define an "activation zone" 150px from the top,
+        // extending down 75% of the viewport height.
+        const observerOptions = {
+            root: null,
+            rootMargin: '-150px 0px -25% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // When a new section enters the zone, it becomes the active one.
+                    currentActiveSectionId = entry.target.id;
+                }
+            });
+
+            // Update all links based on the single currently active section.
+            navLinks.forEach(link => {
+                const hrefId = link.getAttribute('href').substring(1);
+                if (hrefId === currentActiveSectionId) {
+                    link.classList.add('text-cyan-400', 'font-semibold');
+                    link.classList.remove('text-gray-400');
+                } else {
+                    link.classList.remove('text-cyan-400', 'font-semibold');
+                    link.classList.add('text-gray-400');
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+    });
+</script>
+</body>
+</html>
