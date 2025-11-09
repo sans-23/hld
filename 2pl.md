@@ -201,9 +201,10 @@ IF available_seats = 0 THEN
 END IF;
 
 COMMIT;
+```
 
 
-2PL in Distributed Systems
+### 2PL in Distributed Systems
 The Challenge
 In microservices, each service has its own database:
 
@@ -222,8 +223,8 @@ COORDINATOR (Order Service)
 
 Payment DB Inventory DB Order DB
 
-Two-Phase Commit Protocol
-Phase 1: PREPARE (Voting Phase)
+### Two-Phase Commit Protocol
+#### Phase 1: PREPARE (Voting Phase)
 
 Time	Coordinator	Participants
 T1	Write to log: "BEGIN 2PC"	
@@ -244,14 +245,16 @@ T15	All voted COMMIT? ✅
 T16	Write to log: "COMMIT"
 
 
-Phase 2: COMMIT (Decision Phase)
+#### Phase 2: COMMIT (Decision Phase)
 
 | T17 | Send COMMIT to all | | | T18 | | Payment: Deduct $900 | | T19 | | Payment: UNLOCK(user_balance) | | T20 | | Payment: COMMIT | | T21 | | Payment: Reply: ACK | | T22 | | Inventory: Reduce stock | | T23 | | Inventory: UNLOCK(product_stock) | | T24 | | Inventory: COMMIT | | T25 | | Inventory: Reply: ACK | | T26 | | Order: Create order | | T27 | | Order: UNLOCK(order_id) | | T28 | | Order: COMMIT | | T29 | | Order: Reply: ACK | | T30 | Write to log: "COMPLETE" | | | T31 | Transaction SUCCESS! ✅ | |
 
-Abort Scenario
+#### Abort Scenario
 
 
 TimeCoordinatorParticipantsT1Send PREPARE to allT2Payment: LOCK(user_balance)T3Payment: Check: balance = $100 ❌T4Payment: Insufficient funds!T5Payment: Reply: VOTE_ABORTT6Received ABORT voteT7Write to log: "ABORT"T8Send ROLLBACK to allT9Payment: UNLOCK(user_balance)T10Payment: ROLLBACKT11Inventory: UNLOCK(product_stock)T12Inventory: ROLLBACKT13Order: UNLOCK(order_id)T14Order: ROLLBACKT15Transaction FAILED ❌Critical Problem: Coordinator CrashScenario:Coordinator sends PREPAREAll participants lock resources and vote COMMITCOORDINATOR CRASHES before sending COMMIT/ROLLBACKPARTICIPANTS are stuck holding locks! -> BLOCKING PROBLEMSolution A: Timeout + AbortParticipants timeout after X secondsAssume coordinator crashedABORT and release locksSolution B: Write-Ahead LoggingCoordinator logs every step to diskOn restart, read logIf log shows "COMMIT" decision -> complete COMMITIf log incomplete -> ABORTSolution C: 3PC (Three-Phase Commit)Adds "PRE-COMMIT" phaseParticipants know coordinator decided COMMITCan complete without coordinator (non-blocking)2PC Pros & ConsPros:✅ Strong consistency (ACID across services)✅ All-or-nothing guarantee✅ No lost updatesCons:❌ Blocking: Participants hold locks during network delay❌ Slow: Multiple round-trips required❌ Single point of failure: Coordinator crash is problematic❌ Scalability: Doesn't scale well with many participants❌ Availability: One participant down = entire transaction failsWhen to Use:Banking (inter-bank transfers)Critical financial transactionsLegal/compliance requirementsRare in modern microservices!Solution 2: Saga PatternPhilosophy: Instead of distributed locks, use compensating transactions.Choreography SagaScenario: E-commerce order (Payment -> Inventory -> Shipping)Step 1: Payment ServiceReserve $900 from user walletPublish event: "PaymentReserved"COMMIT immediately (no waiting!) ✅Compensation: Refund $900 if later steps failStep 2: Inventory Service (listens to PaymentReserved)Reduce iPhone stock: 1 -> 0Publish event: "InventoryReserved"COMMIT immediately ✅Compensation: Restore stock if later steps failStep 3: Shipping Service (listens to InventoryReserved)Schedule deliveryPublish event: "ShippingScheduled"COMMIT immediately ✅Compensation: Cancel shipment if neededAll steps succeeded -> Order complete! 🎉Saga Rollback FlowIf Step 3 (Shipping) fails:TimeEventT1Shipping Service fails to scheduleT2Publish event: "ShippingFailed"T3Inventory Service receives eventT4Execute compensation: Restore stock (0 -> 1)T5Publish event: "InventoryRestored"T6Payment Service receives eventT7Execute compensation: Refund $900T8Publish event: "PaymentRefunded"T9Order Service marks order as "CANCELLED"T10Notify user: "Order failed, refund processed"Orchestration SagaCentral Orchestrator (Order Service) controls the flow:BEGIN SAGA|+--- Call Payment Service: Reserve $900|+--- Success? Continue : ABORT|+--- Call Inventory Service: Reserve iPhone|+--- Success? Continue : Compensate Payment + ABORT|+--- Call Shipping Service: Schedule delivery|+--- Success? Complete : Compensate Inventory + Payment + ABORT|END SAGASaga Pros & ConsPros:✅ No distributed locks (better performance)✅ Each service commits immediately✅ Services loosely coupled✅ Scales well✅ Failure of one service doesn't block othersCons:❌ Eventual consistency (not immediate)❌ Users might see intermediate states❌ Complex compensation logic❌ No rollback guarantee (compensation might fail!)❌ Ordering/timing issuesWhen to Use:Modern microservices architecturesLong-running workflowsWhen availability > consistencyE-commerce, social media, content platformsComparison: 2PC vs SagaAspect2PC (Distributed 2PL)SagaConsistencyStrong (ACID)EventualLocksYes (distributed)No locksPerformanceSlow (blocking)Fast (non-blocking)AvailabilityLow (one failure blocks all)High (failures isolated)ComplexityProtocol complexityBusiness logic complexityUse CaseBanking, critical financialE-commerce, social mediaIsolationFull isolationNo isolation (visible intermediate states)RollbackAutomaticManual compensationsReal Database ImplementationsPostgreSQLPostgreSQL uses MVCC (Multi-Version Concurrency Control) + 2PL.Lock TypesSQL-- Shared Lock (S-Lock)
+
+```sql
 SELECT * FROM products WHERE id = 1 FOR SHARE;
 -- Other transactions can read, but not write
 
@@ -318,6 +321,8 @@ BEGIN;
 UPDATE accounts SET balance = balance + 100 WHERE id = 2; -- Lock row 2
 -- Now tries to lock row 1...
 UPDATE accounts SET balance = balance - 100 WHERE id = 1; -- ⏳ WAITING
+
+```
 
 -- PostgreSQL's deadlock detector runs (every 1 second)
 -- Detects cycle: T1 -> T2 -> T1
@@ -404,6 +409,8 @@ trx id 12346 lock_mode X locks rec but not gap
 
 *** WE ROLL BACK TRANSACTION (2)
 MongoDB (Document Database)MongoDB 4.0+ supports multi-document transactions with 2PL.Java@Service
+
+```java
 public class MongoOrderService {
 
     @Autowired
@@ -464,7 +471,10 @@ public class MongoOrderService {
         });
     }
 }
+```
 Alternative Approaches1. Optimistic Locking (Optimistic Concurrency Control)Philosophy: "Hope for the best, check at commit time"How It WorksRead data WITHOUT locksPerform operations locallyAt commit time, check if data changedIf changed -> ABORT and retryIf unchanged -> COMMITImplementation: Version NumbersJava// E-commerce: Multiple users editing product details
+
+```java
 // Spring Boot with JPA
 
 @Entity
@@ -516,7 +526,12 @@ public class ProductService {
         }
     }
 }
+
+```
+
 Implementation: TimestampsSQL-- PostgreSQL example
+
+```sql
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255),
@@ -536,6 +551,8 @@ SET
 WHERE
     id = 123
     AND updated_at = '2025-11-04 10:00:00'; -- Check timestamp
+
+```
 
 -- If 0 rows affected -> conflict!
 -- If 1 row affected -> success!
