@@ -598,29 +598,29 @@
   gap: 16px;
   padding: 16px 20px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(41, 154, 141, 0.08), rgba(41, 154, 141, 0.04));
-  border: 1px solid rgba(41, 154, 141, 0.2);
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
   margin-bottom: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .video-walkthrough-banner:hover {
-  border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(41, 154, 141, 0.12), rgba(41, 154, 141, 0.06));
+  border-color: #c4b5fd;
+  background: #ede9fe;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(41, 154, 141, 0.1);
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.1);
 }
 
 .video-walkthrough-banner svg {
-  color: var(--primary);
+  color: #6d28d9;
   flex-shrink: 0;
 }
 
 .video-walkthrough-title {
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--primary);
+  color: #6d28d9;
 }
 
 .video-walkthrough-desc {

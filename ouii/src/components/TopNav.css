@@ -83,7 +83,9 @@
     justify-content: center;
   }
   .logo-text {
-    display: none; /* optional: hide logo text on very small screens if needed, but let's keep it if there's space */
+    display: none;
   }
-  /* Optional: hide some nav actions on mobile if it gets too crowded */
+  .nav-actions {
+    display: none;
+  }
 }
