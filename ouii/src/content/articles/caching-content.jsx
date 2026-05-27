@@ -31,9 +31,13 @@ export default function OldContent() {
         </div>
 
         <section className="content-section">
-          <Callout type="info" title="Watch Video Walkthrough">
-            <p style={{ margin: 0 }}>Watch the author walk through the problem step-by-step</p>
-          </Callout>
+          <div className="video-walkthrough-banner">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <div>
+            <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+            <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+          </div>
+        </div>
 
           <p>
             In system design interviews, caching comes up almost every time you need to handle high read traffic. Your database becomes the bottleneck, latency starts creeping up, and the interviewer is waiting for you to say the word: cache.

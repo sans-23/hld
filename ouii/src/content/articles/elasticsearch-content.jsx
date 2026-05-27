@@ -34,9 +34,13 @@ export default function OldContent() {
             SECTION 1 — Introduction
             ═══════════════════════════════════════════════ */}
         <section className="content-section">
-          <Callout type="info" title="Watch Video Walkthrough">
-            <p style={{ margin: 0 }}>Watch the author walk through the problem step-by-step.</p>
-          </Callout>
+          <div className="video-walkthrough-banner">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <div>
+            <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+            <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+          </div>
+        </div>
 
           <p>
             Many system design problems will involve some aspect of search and retrieval: I've got a lot of "things" and I want to be able to find the right one(s). While most database systems are pretty good at this (e.g., Postgres with a full-text index is sufficient for many problems!), at a certain scale or level of sophistication you'll want to bring out a purpose-built system.

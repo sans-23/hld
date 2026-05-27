@@ -34,9 +34,13 @@ export default function OldContent() {
             SECTION 1 — The Data Model
             ═══════════════════════════════════════════════ */}
         <section className="content-section">
-          <Callout type="info" title="Watch Video Walkthrough">
-            <p style={{ margin: 0 }}>Watch the author walk through the problem step-by-step.</p>
-          </Callout>
+          <div className="video-walkthrough-banner">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <div>
+            <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+            <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+          </div>
+        </div>
 
           <p>
             Amazon <strong>DynamoDB</strong> is a fully managed, serverless, multi-region NoSQL database designed to deliver single-digit millisecond latency at any scale. It handles massive read/write traffic by automatically partitioning data across SSD storage, eliminating database administration overhead (like patching servers or configuring sharding manually).

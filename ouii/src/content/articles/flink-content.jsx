@@ -34,9 +34,13 @@ export default function OldContent() {
             SECTION 1 — Basic Concepts
             ═══════════════════════════════════════════════ */}
         <section className="content-section">
-          <Callout type="info" title="Watch Video Walkthrough">
-            <p style={{ margin: 0 }}>Watch the author walk through the problem step-by-step.</p>
-          </Callout>
+          <div className="video-walkthrough-banner">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <div>
+            <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+            <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+          </div>
+        </div>
 
           <p>
             In system design, we often need to process infinite, continuous flows of data—such as clickstreams, sensor logs, or ride-share location coordinates. Traditional batch processing systems (like MapReduce or Spark Batch) partition this data into fixed-size daily or hourly blocks. This introduces significant processing delay. 

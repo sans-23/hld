@@ -31,9 +31,13 @@ export default function OldContent() {
         </div>
 
         <section className="content-section">
-          <Callout type="info" title="Watch Video Walkthrough">
-            <p style={{ margin: 0 }}>Watch the author walk through the problem step-by-step</p>
-          </Callout>
+          <div className="video-walkthrough-banner">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <div>
+            <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+            <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+          </div>
+        </div>
 
           <p>
             Data modeling is the process of defining how your application’s data is structured, stored, and related. In practice, this means deciding what entities exist, how they’re identified, and how they connect to one another. For a system design interview, the bar is much lower than in a dedicated data modeling interview (commonplace in data engineering loops). You’re not expected to normalize everything or produce a complete schema diagram, you’re just expected to design something clear, functional, and aligned with your system’s requirements.

@@ -18,15 +18,6 @@ export default function OldContent() {
             Learn the important parts of networking that you'll need to know for your system design interviews
           </p>
 
-          {/* Watch Video Walkthrough Banner */}
-          <div className="video-walkthrough-banner">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <div>
-              <div className="video-walkthrough-title">Watch Video Walkthrough</div>
-              <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
-            </div>
-          </div>
-
           <div className="meta-info">
             <span className="meta-item">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -44,6 +35,14 @@ export default function OldContent() {
             INTRO
             ═══════════════════════════════════════════════ */}
         <section className="content-section">
+          <div className="video-walkthrough-banner">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <div>
+            <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+            <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+          </div>
+        </div>
+
           <p>
             Networking is a fundamental part of system design: you're nearly always going to be designing systems comprised of independent devices that communicate over a network. But the field of networking is vast and complex, and it's easy to get lost (this was one of the heaviest textbooks in school, gross).
           </p>
