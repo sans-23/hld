@@ -176,7 +176,7 @@ CREATE TABLE channel_messages (
           <p>
             For a replication factor of $N$, you can specify the write consistency level ($W$) and read consistency level ($R$). By setting:
             <br />
-            $$\mathbf{R + W > N}$$
+            $$\mathbf{{"{"}}R + W > N{"}"}$$
             <br />
             You guarantee a <strong>Strongly Consistent Read</strong> (meaning the read set overlaps with the write set on at least one replica node containing the latest update).
           </p>
