@@ -1,12 +1,11 @@
 import React from 'react';
-import '../MainContent.css';
-import CodeBlock from '../ui/CodeBlock';
-import Callout from '../ui/Callout';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
 
-export default function TimeSeriesDatabases() {
+export default function OldContent() {
   return (
-    <main className="content-scrollable">
-      <article>
+    <>
+
         {/* ─── Header ─── */}
         <div className="article-header">
           <div className="breadcrumb">
@@ -571,7 +570,7 @@ WHERE region = 'us-west' AND env = 'prod'
             </div>
           </a>
         </nav>
-      </article>
-    </main>
+      
+    </>
   );
 }

@@ -1,97 +1,67 @@
 import React from 'react';
-import NetworkingEssentials from './articles/NetworkingEssentials';
-import DbIndexing from './articles/DbIndexing';
-import Caching from './articles/Caching';
-import Sharding from './articles/Sharding';
-import ConsistentHashing from './articles/ConsistentHashing';
-import CapTheorem from './articles/CapTheorem';
-import DataModeling from './articles/DataModeling';
-import ApiDesign from './articles/ApiDesign';
-import NumbersToKnow from './articles/NumbersToKnow';
-import Redis from './articles/Redis';
-import Elasticsearch from './articles/Elasticsearch';
-import Kafka from './articles/Kafka';
-import ApiGateway from './articles/ApiGateway';
-import Cassandra from './articles/Cassandra';
-import DynamoDB from './articles/DynamoDB';
-import PostgreSQL from './articles/PostgreSQL';
-import Flink from './articles/Flink';
-import ZooKeeper from './articles/ZooKeeper';
-import TimeSeriesDatabases from './articles/TimeSeriesDatabases';
+import { useParams, Navigate } from 'react-router-dom';
+import { VALID_ARTICLE_IDS } from '../config/navigation';
+import { usePageTitle } from '../hooks/usePageTitle';
+import './MainContent.css';
 
-export default function MainContent({ activeArticleId }) {
-  if (activeArticleId === 'db-indexing') {
-    return <DbIndexing />;
+import NetworkingEssentials from '../content/articles/networking.mdx';
+import DbIndexing from '../content/articles/db-indexing.mdx';
+import Caching from '../content/articles/caching.mdx';
+import Sharding from '../content/articles/sharding.mdx';
+import ConsistentHashing from '../content/articles/consistent-hashing.mdx';
+import CapTheorem from '../content/articles/cap-theorem.mdx';
+import DataModeling from '../content/articles/data-modeling.mdx';
+import ApiDesign from '../content/articles/api-design.mdx';
+import NumbersToKnow from '../content/articles/numbers-to-know.mdx';
+import Redis from '../content/articles/redis.mdx';
+import Elasticsearch from '../content/articles/elasticsearch.mdx';
+import Kafka from '../content/articles/kafka.mdx';
+import ApiGateway from '../content/articles/api-gateway.mdx';
+import Cassandra from '../content/articles/cassandra.mdx';
+import DynamoDB from '../content/articles/dynamodb.mdx';
+import PostgreSQL from '../content/articles/postgresql.mdx';
+import Flink from '../content/articles/flink.mdx';
+import ZooKeeper from '../content/articles/zookeeper.mdx';
+import TimeSeriesDatabases from '../content/articles/time-series.mdx';
+import NotFound from './NotFound';
+
+export default function MainContent() {
+  const { articleId } = useParams();
+  usePageTitle(articleId);
+
+  if (articleId && !VALID_ARTICLE_IDS.includes(articleId)) {
+    return <NotFound />;
   }
 
-  if (activeArticleId === 'caching') {
-    return <Caching />;
-  }
+  const renderArticle = () => {
+    if (articleId === 'db-indexing') return <DbIndexing />;
+    if (articleId === 'caching') return <Caching />;
+    if (articleId === 'sharding') return <Sharding />;
+    if (articleId === 'consistent-hashing') return <ConsistentHashing />;
+    if (articleId === 'cap-theorem') return <CapTheorem />;
+    if (articleId === 'data-modeling') return <DataModeling />;
+    if (articleId === 'api-design') return <ApiDesign />;
+    if (articleId === 'numbers-to-know') return <NumbersToKnow />;
+    if (articleId === 'redis') return <Redis />;
+    if (articleId === 'elasticsearch') return <Elasticsearch />;
+    if (articleId === 'kafka') return <Kafka />;
+    if (articleId === 'api-gateway') return <ApiGateway />;
+    if (articleId === 'cassandra') return <Cassandra />;
+    if (articleId === 'dynamodb') return <DynamoDB />;
+    if (articleId === 'postgresql') return <PostgreSQL />;
+    if (articleId === 'flink') return <Flink />;
+    if (articleId === 'zookeeper') return <ZooKeeper />;
+    if (articleId === 'time-series') return <TimeSeriesDatabases />;
+    
+    // Default to Networking Essentials
+    return <NetworkingEssentials />;
+  };
 
-  if (activeArticleId === 'sharding') {
-    return <Sharding />;
-  }
-
-  if (activeArticleId === 'consistent-hashing') {
-    return <ConsistentHashing />;
-  }
-
-  if (activeArticleId === 'cap-theorem') {
-    return <CapTheorem />;
-  }
-
-  if (activeArticleId === 'data-modeling') {
-    return <DataModeling />;
-  }
-
-  if (activeArticleId === 'api-design') {
-    return <ApiDesign />;
-  }
-
-  if (activeArticleId === 'numbers-to-know') {
-    return <NumbersToKnow />;
-  }
-
-  if (activeArticleId === 'redis') {
-    return <Redis />;
-  }
-
-  if (activeArticleId === 'elasticsearch') {
-    return <Elasticsearch />;
-  }
-
-  if (activeArticleId === 'kafka') {
-    return <Kafka />;
-  }
-
-  if (activeArticleId === 'api-gateway') {
-    return <ApiGateway />;
-  }
-
-  if (activeArticleId === 'cassandra') {
-    return <Cassandra />;
-  }
-
-  if (activeArticleId === 'dynamodb') {
-    return <DynamoDB />;
-  }
-
-  if (activeArticleId === 'postgresql') {
-    return <PostgreSQL />;
-  }
-
-  if (activeArticleId === 'flink') {
-    return <Flink />;
-  }
-
-  if (activeArticleId === 'zookeeper') {
-    return <ZooKeeper />;
-  }
-
-  if (activeArticleId === 'time-series') {
-    return <TimeSeriesDatabases />;
-  }
-
-  // Default to Networking Essentials
-  return <NetworkingEssentials />;
+  return (
+    <main className="content-scrollable">
+      <article>
+        {renderArticle()}
+      </article>
+    </main>
+  );
 }

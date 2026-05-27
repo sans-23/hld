@@ -1,12 +1,8 @@
-import React from 'react';
-import '../MainContent.css';
-import CodeBlock from '../ui/CodeBlock';
-import Callout from '../ui/Callout';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
 
-export default function NetworkingEssentials() {
-  return (
-    <main className="content-scrollable">
-      <article>
+
+
         {/* ─── Header ─── */}
         <div className="article-header">
           <div className="breadcrumb">
@@ -14,7 +10,7 @@ export default function NetworkingEssentials() {
             <span className="breadcrumb-separator">›</span>
             <span className="breadcrumb-current">Networking Essentials</span>
           </div>
-          <h1>Networking Essentials</h1>
+          # Networking Essentials
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
             Learn the important parts of networking that you'll need to know for your system design interviews
           </p>
@@ -44,7 +40,7 @@ export default function NetworkingEssentials() {
         {/* ═══════════════════════════════════════════════
             INTRO
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
+        
           <p>
             Networking is a fundamental part of system design: you're nearly always going to be designing systems comprised of independent devices that communicate over a network. But the field of networking is vast and complex, and it's easy to get lost (this was one of the heaviest textbooks in school, gross).
           </p>
@@ -63,26 +59,26 @@ export default function NetworkingEssentials() {
               Each interviewer is a little different and if your interviewer just got off an oncall rotation dealing with load balancer problems or CDN issues, you'll want to be prepared to respond to their probes and questions!
             </p>
           </Callout>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             NETWORKING 101
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="networking-101">Networking 101</h2>
+        
+          ## Networking 101
           <p>
             At its core, networking is about connecting devices and enabling them to communicate. Networks are built on a layered architecture (the so-called "OSI model") which greatly simplifies the world for us application developers who sit on top of it.
           </p>
           <p>
-            Effectively, network layers are just abstractions that allow us to reason about the communication between devices in simpler terms relevant to our application. This way, when you're requesting a webpage, you don't need to know which voltages represent a 1 or a 0 on the network wire (modern networking hardware is even more sophisticated than this!) — you just need to know how to use the next layer down the stack. Think of it like how you might use <span className="inline-code">open</span> in your language of choice instead of manually instructing the disk how to read bytes off a disk.
+            Effectively, network layers are just abstractions that allow us to reason about the communication between devices in simpler terms relevant to our application. This way, when you're requesting a webpage, you don't need to know which voltages represent a 1 or a 0 on the network wire (modern networking hardware is even more sophisticated than this!) — you just need to know how to use the next layer down the stack. Think of it like how you might use `open` in your language of choice instead of manually instructing the disk how to read bytes off a disk.
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             NETWORKING LAYERS
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="networking-layers">Networking Layers</h2>
+        
+          ## Networking Layers
           <p>
             While the full networking stack is fascinating, there are three key layers that come up most often in system design interviews. We're going to dive into each of them in a bit, but first let's talk about what these layers do and how they work together.
           </p>
@@ -128,18 +124,18 @@ export default function NetworkingEssentials() {
           <p>
             These layers work together to enable all our network communications. To see how they interact in practice, let's walk through a concrete example of how a simple web request works.
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             EXAMPLE: A SIMPLE WEB REQUEST
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h3 id="simple-web-request">Example: A Simple Web Request</h3>
+        
+          ### Example: A Simple Web Request
           <p>
             When you type a URL into your browser, several layers of networking protocols spring into action. Let's break down how these layers work together to retrieve a simple web page over HTTP on TCP.
           </p>
           <p>
-            First, we use DNS to convert a human-readable domain name like <span className="inline-code">ouii.com</span> into an IP address like <span className="inline-code">32.42.52.62</span>. Then, a series of carefully orchestrated steps begins. We set up a TCP connection over IP, send our HTTP request, get a response, and tear down the connection.
+            First, we use DNS to convert a human-readable domain name like `ouii.com` into an IP address like `32.42.52.62`. Then, a series of carefully orchestrated steps begins. We set up a TCP connection over IP, send our HTTP request, get a response, and tear down the connection.
           </p>
           <p>In detail:</p>
 
@@ -204,27 +200,23 @@ export default function NetworkingEssentials() {
             </div>
           </div>
 
-          <ol>
-            <li><strong>DNS Resolution:</strong> The client starts by resolving the domain name of the website to an IP address using DNS (Domain Name System).</li>
-            <li><strong>TCP Handshake:</strong> The client initiates a TCP connection with the server using a three-way handshake:
-              <ul>
-                <li><strong>SYN:</strong> The client sends a SYN (synchronize) packet to the server to request a connection.</li>
-                <li><strong>SYN-ACK:</strong> The server responds with a SYN-ACK (synchronize-acknowledge) packet to acknowledge the request.</li>
-                <li><strong>ACK:</strong> The client sends an ACK (acknowledge) packet to establish the connection.</li>
-              </ul>
-            </li>
-            <li><strong>HTTP Request:</strong> Once the TCP connection is established, the client sends an HTTP GET request to the server to request the web page.</li>
-            <li><strong>Server Processing:</strong> The server processes the request, retrieves the requested web page, and prepares an HTTP response. (This is usually the only latency most SWE's think about and control!)</li>
-            <li><strong>HTTP Response:</strong> The server sends the HTTP response back to the client, which includes the requested web page content.</li>
-            <li><strong>TCP Teardown:</strong> After the data transfer is complete, the client and server close the TCP connection using a four-way handshake:
-              <ul>
-                <li><strong>FIN:</strong> The client sends a FIN (finish) packet to the server to terminate the connection.</li>
-                <li><strong>ACK:</strong> The server acknowledges the FIN packet with an ACK.</li>
-                <li><strong>FIN:</strong> The server sends a FIN packet to the client to terminate its side of the connection.</li>
-                <li><strong>ACK:</strong> The client acknowledges the server's FIN packet with an ACK.</li>
-              </ul>
-            </li>
-          </ol>
+          
+            - **DNS Resolution:** The client starts by resolving the domain name of the website to an IP address using DNS (Domain Name System).
+            - **TCP Handshake:** The client initiates a TCP connection with the server using a three-way handshake:   - **SYN:** The client sends a SYN (synchronize) packet to the server to request a connection.
+                - **SYN-ACK:** The server responds with a SYN-ACK (synchronize-acknowledge) packet to acknowledge the request.
+                - **ACK:** The client sends an ACK (acknowledge) packet to establish the connection.
+              
+            
+            - **HTTP Request:** Once the TCP connection is established, the client sends an HTTP GET request to the server to request the web page.
+            - **Server Processing:** The server processes the request, retrieves the requested web page, and prepares an HTTP response. (This is usually the only latency most SWE's think about and control!)
+            - **HTTP Response:** The server sends the HTTP response back to the client, which includes the requested web page content.
+            - **TCP Teardown:** After the data transfer is complete, the client and server close the TCP connection using a four-way handshake:   - **FIN:** The client sends a FIN (finish) packet to the server to terminate the connection.
+                - **ACK:** The server acknowledges the FIN packet with an ACK.
+                - **FIN:** The server sends a FIN packet to the client to terminate its side of the connection.
+                - **ACK:** The client acknowledges the server's FIN packet with an ACK.
+              
+            
+          
 
           <Callout type="info" title="Classic Interview Question">
             <p>
@@ -247,29 +239,29 @@ export default function NetworkingEssentials() {
           <p>
             Finally note that the connection between the client and server is a state that both the client and server must maintain. Unless we use features like HTTP keep-alive or HTTP/2 multiplexing, we need to repeat this connection setup process for every request - a potentially significant overhead. This will become important for designing systems which need persistent connections, like those handling Realtime Updates.
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             NETWORK LAYER PROTOCOLS
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="network-layer-protocols">Network Layer Protocols</h2>
+        
+          ## Network Layer Protocols
           <p>
             The first layer in our journey are the network layer protocols. This layer is dominated by the IP protocol, which is responsible for routing and addressing. In a system, nodes are assigned IPs usually by a DHCP server when they boot up. These IP addresses are arbitrary and only mean something in as much as we tell people about them. If I want to, I can create a private network with my servers and give them any IP address I want, but if you want internet traffic to be able to find them you'll need to use IP addresses that are routable and allocated by a RIR.
           </p>
           <p>
-            These assigned IP addresses are called public IPs and are used to identify devices on the internet. The most important thing about them is that internet routing infrastructure is optimized to route traffic between public IPs and knows where they are. Any address starting with 17 (e.g. <span className="inline-code">17.0.0.0</span>) is part of Apple — the backbone of the internet knows that when you want to send a packet to these addresses, you need to send it to their routers.
+            These assigned IP addresses are called public IPs and are used to identify devices on the internet. The most important thing about them is that internet routing infrastructure is optimized to route traffic between public IPs and knows where they are. Any address starting with 17 (e.g. `17.0.0.0`) is part of Apple — the backbone of the internet knows that when you want to send a packet to these addresses, you need to send it to their routers.
           </p>
           <p>
             There's a lot more to cover in internet routing but it's not going to be important for our purposes so we'll keep it simple and move up the stack to our next layer: the transport layer.
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             TRANSPORT LAYER PROTOCOLS
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="transport-layer">Transport Layer Protocols</h2>
+        
+          ## Transport Layer Protocols
           <p>
             The transport layer is where we establish end-to-end communication between applications. They give us some guarantees instead of handing us a jumbled mess of packets. The three primary protocols at this layer are TCP, UDP, and QUIC, each with distinct characteristics that make them suitable for different use cases.
           </p>
@@ -283,7 +275,7 @@ export default function NetworkingEssentials() {
             </p>
           </Callout>
 
-          <h3 id="udp">UDP: Fast but Unreliable</h3>
+          ### UDP: Fast but Unreliable
           <p>
             User Datagram Protocol (UDP) is the machinegun of protocols. It offers few features on top of IP but is very fast. Spray and pray is the right way to think about this. It provides a simpler, connectionless service with no guarantees of delivery, ordering, or duplicate protection.
           </p>
@@ -291,12 +283,12 @@ export default function NetworkingEssentials() {
             If you write an application that receives UDP datagrams, you'll be able to see where they came from (i.e. the source IP address and port) and where they're going (i.e. the destination IP address and port). But that's it! The rest is a binary blob.
           </p>
           <p>Key characteristics of UDP include:</p>
-          <ul>
-            <li><strong>Connectionless:</strong> No handshake or connection setup</li>
-            <li><strong>No guarantee of delivery:</strong> Packets may be lost without notification</li>
-            <li><strong>No ordering:</strong> Packets may arrive in a different order than sent</li>
-            <li><strong>Lower latency:</strong> Less overhead means faster transmission</li>
-          </ul>
+          
+            - **Connectionless:** No handshake or connection setup
+            - **No guarantee of delivery:** Packets may be lost without notification
+            - **No ordering:** Packets may arrive in a different order than sent
+            - **Lower latency:** Less overhead means faster transmission
+          
           <p>
             No setup sounds great but 2 and 3 kinda suck, so why would you want to use UDP?
           </p>
@@ -310,7 +302,7 @@ export default function NetworkingEssentials() {
             </p>
           </Callout>
 
-          <h3 id="tcp">TCP: Reliable but with Overhead</h3>
+          ### TCP: Reliable but with Overhead
           <p>
             Transmission Control Protocol (TCP) is the workhorse of the internet. It provides reliable, ordered, and error-checked delivery of data. It establishes a connection through a three-way handshake (we saw this illustrated above with the HTTP example) and maintains that connection throughout the communication session.
           </p>
@@ -318,18 +310,18 @@ export default function NetworkingEssentials() {
             This connection is called a "stream" and is a stateful connection between the client and server — it also gives us a basis to talk about ordering: two messages sent in the same stream/connection will arrive in the same order. TCP will ensure that recipients of messages acknowledge their receipt and, if they don't, will retransmit the message until it is acknowledged.
           </p>
 
-          <h4>Key Characteristics of TCP</h4>
-          <ul>
-            <li><strong>Connection-oriented:</strong> Establishes a dedicated connection before data transfer</li>
-            <li><strong>Reliable delivery:</strong> Guarantees that data arrives in order and without errors</li>
-            <li><strong>Flow control:</strong> Prevents overwhelming receivers with too much data</li>
-            <li><strong>Congestion control:</strong> Adapts to network congestion to prevent collapse</li>
-          </ul>
+          #### Key Characteristics of TCP
+          
+            - **Connection-oriented:** Establishes a dedicated connection before data transfer
+            - **Reliable delivery:** Guarantees that data arrives in order and without errors
+            - **Flow control:** Prevents overwhelming receivers with too much data
+            - **Congestion control:** Adapts to network congestion to prevent collapse
+          
           <p>
             TCP is ideal for applications where data integrity is critical — that is, basically everything where UDP is not a good fit.
           </p>
 
-          <h3 id="when-to-choose">When to Choose Each Protocol</h3>
+          ### When to Choose Each Protocol
           <p>
             In system design interviews, most interviewers will expect you're using TCP by default — it often doesn't need to be directly mentioned. That's good because that's also our recommendation!
           </p>
@@ -337,12 +329,12 @@ export default function NetworkingEssentials() {
             But you'll be able to earn extra points if you can make the case for a UDP application and not bungle the details. So the question you should be asking yourself is whether UDP is a better fit for your use-case.
           </p>
           <p>You might choose UDP when:</p>
-          <ul>
-            <li>Low latency is critical (real-time applications, gaming)</li>
-            <li>Some data loss is acceptable (media streaming)</li>
-            <li>You're handling high-volume telemetry or logs where occasional loss is acceptable</li>
-            <li>You don't need to support web browsers (or you have an alternative for that client)</li>
-          </ul>
+          
+            - Low latency is critical (real-time applications, gaming)
+            - Some data loss is acceptable (media streaming)
+            - You're handling high-volume telemetry or logs where occasional loss is acceptable
+            - You don't need to support web browsers (or you have an alternative for that client)
+          
           <p>
             Modern applications often use both protocols. For example, a web-based video conferencing app might use TCP/HTTP for signaling and authentication but UDP/WebRTC for the actual audio/video streams.
           </p>
@@ -369,24 +361,24 @@ export default function NetworkingEssentials() {
               </tbody>
             </table>
           </div>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             APPLICATION LAYER PROTOCOLS
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="application-layer">Application Layer Protocols</h2>
+        
+          ## Application Layer Protocols
           <p>
             The application layer is where most developers spend their time. These protocols define how applications communicate and are built on top of the transport layer protocols we just discussed.
           </p>
           <p>
             Typically the application layer is processed in "User Space" whereas layers beneath it are processed in the OS kernel in "Kernel Space". This means that the application layer is more flexible and can be more easily modified than lower layers, whereas lower layers are difficult to change but can be very efficient.
           </p>
-        </section>
+        
 
         {/* ─── HTTP/HTTPS ─── */}
-        <section className="content-section">
-          <h3 id="http">HTTP/HTTPS: The Web's Foundation</h3>
+        
+          ### HTTP/HTTPS: The Web's Foundation
           <p>
             Hypertext Transfer Protocol (HTTP) is the de-facto standard for data communication on the web. It's a request-response protocol where clients send requests to servers, and servers respond with the requested data.
           </p>
@@ -394,7 +386,7 @@ export default function NetworkingEssentials() {
             HTTP is a stateless protocol, meaning that each request is independent and the server doesn't need to maintain any information about previous requests. This is generally a good thing. In system design you'll want to minimize the surface area of your system that needs to be stateful where possible. Most simple HTTP servers can be described as a function of the request parameters — they're stateless!
           </p>
           <p>
-            Here's a simple HTTP request/response. You can actually open up a TCP connection and send an HTTP request/response by hand with netcat (<span className="inline-code">nc</span> on the command line) if you'd like!
+            Here's a simple HTTP request/response. You can actually open up a TCP connection and send an HTTP request/response by hand with netcat (`nc` on the command line) if you'd like!
           </p>
 
           {/* Simple HTTP Request/Response Diagram */}
@@ -424,48 +416,48 @@ export default function NetworkingEssentials() {
           </div>
 
           <p>You'll see a few key concepts:</p>
-          <ul>
-            <li><strong>Request methods:</strong> GET, POST, PUT, DELETE, etc.</li>
-            <li><strong>Status codes:</strong> 200 OK, 404 Not Found, 500 Server Error, etc.</li>
-            <li><strong>Headers:</strong> Metadata about the request or response</li>
-            <li><strong>Body:</strong> The actual content being transferred</li>
-          </ul>
+          
+            - **Request methods:** GET, POST, PUT, DELETE, etc.
+            - **Status codes:** 200 OK, 404 Not Found, 500 Server Error, etc.
+            - **Headers:** Metadata about the request or response
+            - **Body:** The actual content being transferred
+          
           <p>
             The HTTP request methods and status codes are well-defined and standardized (think of them like enums). It's good to know some of the common ones, but most interviewers aren't going to get into this level of detail except if you're using a RESTful API.
           </p>
 
-          <h4>Common Request Methods</h4>
-          <ul>
-            <li><strong>GET:</strong> Request data from the server. GET requests should be idempotent and don't have a body.</li>
-            <li><strong>POST:</strong> Send data to the server.</li>
-            <li><strong>PUT:</strong> Update data on the server.</li>
-            <li><strong>PATCH:</strong> Update a resource partially.</li>
-            <li><strong>DELETE:</strong> Delete data from the server. DELETE requests should be idempotent.</li>
-          </ul>
+          #### Common Request Methods
+          
+            - **GET:** Request data from the server. GET requests should be idempotent and don't have a body.
+            - **POST:** Send data to the server.
+            - **PUT:** Update data on the server.
+            - **PATCH:** Update a resource partially.
+            - **DELETE:** Delete data from the server. DELETE requests should be idempotent.
+          
 
-          <h4>Common Status Codes</h4>
-          <p><strong>Success (2xx)</strong></p>
-          <ul>
-            <li><strong>200 OK:</strong> The request was successful</li>
-            <li><strong>201 Created:</strong> The request was successful and a new resource was created</li>
-          </ul>
-          <p><strong>Moved (3xx)</strong></p>
-          <ul>
-            <li><strong>302 Found:</strong> The requested resource has been moved temporarily</li>
-            <li><strong>301 Moved Permanently:</strong> The requested resource has been moved permanently</li>
-          </ul>
-          <p><strong>Client Error (4xx)</strong></p>
-          <ul>
-            <li><strong>404 Not Found:</strong> The requested resource was not found</li>
-            <li><strong>401 Unauthorized:</strong> The request requires authentication</li>
-            <li><strong>403 Forbidden:</strong> The server understood the request but refuses to authorize it</li>
-            <li><strong>429 Too Many Requests:</strong> The client has sent too many requests in a given amount of time</li>
-          </ul>
-          <p><strong>Server Error (5xx)</strong></p>
-          <ul>
-            <li><strong>500 Server Error:</strong> The server encountered an error</li>
-            <li><strong>502 Bad Gateway:</strong> The server received an invalid response from the upstream server</li>
-          </ul>
+          #### Common Status Codes
+          <p>**Success (2xx)**</p>
+          
+            - **200 OK:** The request was successful
+            - **201 Created:** The request was successful and a new resource was created
+          
+          <p>**Moved (3xx)**</p>
+          
+            - **302 Found:** The requested resource has been moved temporarily
+            - **301 Moved Permanently:** The requested resource has been moved permanently
+          
+          <p>**Client Error (4xx)**</p>
+          
+            - **404 Not Found:** The requested resource was not found
+            - **401 Unauthorized:** The request requires authentication
+            - **403 Forbidden:** The server understood the request but refuses to authorize it
+            - **429 Too Many Requests:** The client has sent too many requests in a given amount of time
+          
+          <p>**Server Error (5xx)**</p>
+          
+            - **500 Server Error:** The server encountered an error
+            - **502 Bad Gateway:** The server received an invalid response from the upstream server
+          
           <p>
             The headers are much more flexible (think of them like key/value pairs). This flexibility demonstrates the pragmatic design philosophy that underlies much of the HTTP spec.
           </p>
@@ -475,7 +467,7 @@ export default function NetworkingEssentials() {
               HTTP headers are a great example of how to design an interface that is flexible to unknown future use-cases and provides a good lesson for API design. Content negotiation is a perfect case study.
             </p>
             <p style={{ marginTop: '8px' }}>
-              The HTTP Accepts-Encoding header as an example provides clients a way to indicate they can handle different types of content encoding. This allows servers to provide (e.g.) gzip or br (brotli) encoded responses if they're available. Servers can then respond with the most efficient encoding for that client with <span className="inline-code">Content-Encoding: X</span> providing both backward compatibility and graceful degradation.
+              The HTTP Accepts-Encoding header as an example provides clients a way to indicate they can handle different types of content encoding. This allows servers to provide (e.g.) gzip or br (brotli) encoded responses if they're available. Servers can then respond with the most efficient encoding for that client with `Content-Encoding: X` providing both backward compatibility and graceful degradation.
             </p>
           </Callout>
 
@@ -494,11 +486,11 @@ export default function NetworkingEssentials() {
           <p>
             That's HTTP in a nutshell! Now let's talk about how to use it to build APIs.
           </p>
-        </section>
+        
 
         {/* ─── REST ─── */}
-        <section className="content-section">
-          <h3 id="rest">REST: Simple and Flexible</h3>
+        
+          ### REST: Simple and Flexible
           <p>
             While HTTP can be used directly to build websites, oftentimes system designs are concerned with the communication between services via APIs. For creating these APIs, we have three main paradigms: REST, GraphQL, and gRPC.
           </p>
@@ -520,7 +512,7 @@ export default function NetworkingEssentials() {
           <CodeBlock language="http">{`GET /users/{id} -> User`}</CodeBlock>
 
           <p>
-            Here we're using the HTTP method "GET" to indicate that we're requesting a resource. The <span className="inline-code">{'{id}'}</span> is a placeholder for the resource ID, in this case the user ID of the user we want to retrieve.
+            Here we're using the HTTP method "GET" to indicate that we're requesting a resource. The `{'{id}'}` is a placeholder for the resource ID, in this case the user ID of the user we want to retrieve.
           </p>
           <p>
             When we want to update that user, we can use the HTTP method "PUT" to indicate that we're updating a pre-existing resource.
@@ -550,14 +542,14 @@ export default function NetworkingEssentials() {
 
           <Callout type="info" title="Think Resources, Not Methods">
             <p>
-              Many engineers often think in terms of methods like <span className="inline-code">updateUser</span> or <span className="inline-code">startGame</span>. These are operations, not resources, so they're not RESTful.
+              Many engineers often think in terms of methods like `updateUser` or `startGame`. These are operations, not resources, so they're not RESTful.
             </p>
             <p style={{ marginTop: '8px' }}>
-              In REST, we want to think in terms of resources and the operations you can perform on them. So our <span className="inline-code">updateUser</span> might be <span className="inline-code">PUT /users/{'{id}'}</span> and our <span className="inline-code">startGame</span> might be <span className="inline-code">PATCH /games</span> with <span className="inline-code">{'{ "status": "started" }'}</span>.
+              In REST, we want to think in terms of resources and the operations you can perform on them. So our `updateUser` might be `PUT /users/{'{id}'}` and our `startGame` might be `PATCH /games` with `{'{ "status": "started" }'}`.
             </p>
           </Callout>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             Overall REST is very flexible for a wide variety of use-cases and applications. ElasticSearch uses it to manage documents, configure indexes, and more. Check out that deep dive if you want to see a great example of a RESTful API.
           </p>
@@ -567,11 +559,11 @@ export default function NetworkingEssentials() {
           <p>
             That said, most applications aren't going to be bottlenecked by request serialization. Like TCP, REST is where we'd suggest you default for your interviews. It's well-understood and a good baseline for building scalable systems. You should reach for GraphQL, gRPC, SSE, or WebSockets if you have specific needs that REST can't meet. For practical REST API design patterns, see our API Design guide.
           </p>
-        </section>
+        
 
         {/* ─── GraphQL ─── */}
-        <section className="content-section">
-          <h3 id="graphql">GraphQL: Flexible Data Fetching</h3>
+        
+          ### GraphQL: Flexible Data Fetching
           <p>
             GraphQL is a more recent API paradigm (open-sourced circa 2015 by Facebook) that allows clients to request exactly the data they need.
           </p>
@@ -687,7 +679,7 @@ export default function NetworkingEssentials() {
             In our example, instead of writing a bunch of different APIs, the frontend team can just write a single query to get the data they need and the backend can (in theory) respond with the data in the shape that the frontend needs it.
           </p>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             GraphQL is a great fit for use-cases where the frontend team needs to iterate quickly and adjust. They can flexibly query the backend for exactly the data they need. On the other hand, execution of these GraphQL queries can be a source of latency and complexity for the backend — sometimes involving the same bespoke backend code that we're trying to avoid. In practice, GraphQL finds its sweet spot with complex clients and when multiple teams are making wide queries to overlapping data.
           </p>
@@ -697,11 +689,11 @@ export default function NetworkingEssentials() {
           <p>
             We recommend bringing up GraphQL in cases where the problem is clearly focused on flexibility (e.g. the interviewer tells us we need to be able to adapt our apps quickly to changing requirements) or when the requirements in the interview are deliberately uncertain. For more interview-focused GraphQL guidance, see our API Design article.
           </p>
-        </section>
+        
 
         {/* ─── gRPC ─── */}
-        <section className="content-section">
-          <h3 id="grpc">gRPC: Efficient Service Communication</h3>
+        
+          ### gRPC: Efficient Service Communication
           <p>
             gRPC is a high-performance RPC (Remote Procedure Call) framework from Google (the "g") that uses HTTP/2 and Protocol Buffers.
           </p>
@@ -746,7 +738,7 @@ service UserService {
             These definitions are compiled into a client and server stub which a wide variety of languages and frameworks can consume to build services and clients. gRPC includes a bunch of features relevant for operating microservice architectures at scale (it was invented by Google after all) like streaming, deadlines, client-side load balancing and more. But the most important thing to know is that it's a binary protocol that's faster and more efficient than JSON over HTTP.
           </p>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             gRPC shines in microservices architectures where services need to communicate efficiently. Its strong typing helps catch errors at compile time rather than runtime, and its binary protocol is more efficient than JSON over HTTP (some benchmarks show a factor of 10x throughput!). Consider gRPC for internal service-to-service communication, especially when performance is critical or when latencies are dominated by the network rather than the work the server is doing.
           </p>
@@ -790,11 +782,11 @@ service UserService {
               Sometimes engineers think the point of a system design interview is to draw up an optimal solution to a problem on a whiteboard. But interviewers typically are trying to understand how you think through a problem and how you react to challenges and constraints you may not have seen before. Be wary of hyperoptimizing your RPC protocol choice before you've handled other substantial bottlenecks in the problem. Premature optimization is the root of all evil!
             </p>
           </Callout>
-        </section>
+        
 
         {/* ─── SSE ─── */}
-        <section className="content-section">
-          <h3 id="sse">Server-Sent Events (SSE): Real-Time Push Communication</h3>
+        
+          ### Server-Sent Events (SSE): Real-Time Push Communication
           <p>
             So far we've been talking mostly about request/response style APIs, but many applications need to "push" data to clients in a more streaming fashion. While gRPC does support streaming, it's not ideal for external APIs due to limited support (e.g. no browsers support gRPC today). Server-Sent Events (SSE) is a spec defined on top of HTTP that allows a server to push many messages to the client over a single HTTP connection.
           </p>
@@ -842,18 +834,18 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             </p>
           </Callout>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             You'll find SSE useful in system design interviews in situations where you want clients to get notifications or events as soon as they happen. SSE is a great option for keeping bidders up-to-date on the current price of an auction, for example.
           </p>
           <p>
             We touch on this pattern in greater detail in our Realtime Updates deep dive, which also covers the server-side implications of an SSE implementation.
           </p>
-        </section>
+        
 
         {/* ─── WebSockets ─── */}
-        <section className="content-section">
-          <h3 id="websockets">WebSockets: Real-Time Bidirectional Communication</h3>
+        
+          ### WebSockets: Real-Time Bidirectional Communication
           <p>
             Now while SSE is a great way to push from the server to client, many applications need real-time bidirectional communication. And while gRPC does support streaming, it's still (broken record?) not ideal for external APIs due to limited support (e.g. no browsers support gRPC today). So what's an interview candidate to do?
           </p>
@@ -873,14 +865,14 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             </p>
           </Callout>
 
-          <h4>How it Works</h4>
+          #### How it Works
           <p>Here's how it works:</p>
-          <ol>
-            <li>Client initiates WebSocket handshake over HTTP (with a backing TCP connection)</li>
-            <li>Connection upgrades to WebSocket protocol, WebSocket takes over the TCP connection</li>
-            <li>Both client and server can send binary messages to each other over the connection</li>
-            <li>The connection stays open until explicitly closed</li>
-          </ol>
+          
+            - Client initiates WebSocket handshake over HTTP (with a backing TCP connection)
+            - Connection upgrades to WebSocket protocol, WebSocket takes over the TCP connection
+            - Both client and server can send binary messages to each other over the connection
+            - The connection stays open until explicitly closed
+          
           <p>
             WebSockets don't dictate an application protocol, you effectively have a channel where you can send binary packets to the server from the client and vice versa. This means you'll need some way of defining what it is your client and server are exchanging. For many WebSocket applications, simple serialized JSON messages are a great option! This also gives you a chance to define the API of your service for your design:
           </p>
@@ -911,7 +903,7 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             </div>
           </div>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             WebSockets come up in system design interviews when you need high-frequency, persistent, bi-directional communication between client and server. Think real-time applications, games, and other use-cases where you need to send and receive messages as soon as they happen.
           </p>
@@ -924,11 +916,11 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
               In system design interviews, launching into a WebSocket implementation without justifying why they are needed is a great way to get a "thumbs down" from your interviewer. WebSockets are powerful, but the infra required to support them can be expensive and the overhead of stateful connections (especially at scale) will require significant accommodations in your design. Hold off unless you really need them!
             </p>
           </Callout>
-        </section>
+        
 
         {/* ─── WebRTC ─── */}
-        <section className="content-section">
-          <h3 id="webrtc">WebRTC: Peer-to-Peer Communication</h3>
+        
+          ### WebRTC: Peer-to-Peer Communication
           <p>
             The last protocol we'll cover is the most unique. WebRTC enables direct peer-to-peer communication between browsers without requiring an intermediary server for the data exchange. WebRTC can be perfect for collaborative applications like document editors and is especially useful for video/audio calling and conferencing applications. Oh, and it's the only application-level protocol we'll cover that uses UDP!
           </p>
@@ -944,10 +936,10 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
           <p>
             The WebRTC standard includes two methods to work around these restrictions:
           </p>
-          <ul>
-            <li><strong>STUN:</strong> "Session Traversal Utilities for NAT" is a protocol and a set of techniques like "hole punching" which allows peers to establish publically routable addresses and ports. I won't go into details here, but as hacky as it sounds it's a standard way to deal with NAT traversal and it involves repeatedly creating open ports and sharing them via the signaling server with peers.</li>
-            <li><strong>TURN:</strong> "Traversal Using Relays around NAT" is effectively a relay service, a way to bounce requests through a central server which can then be routed to the appropriate peer.</li>
-          </ul>
+          
+            - **STUN:** "Session Traversal Utilities for NAT" is a protocol and a set of techniques like "hole punching" which allows peers to establish publically routable addresses and ports. I won't go into details here, but as hacky as it sounds it's a standard way to deal with NAT traversal and it involves repeatedly creating open ports and sharing them via the signaling server with peers.
+            - **TURN:** "Traversal Using Relays around NAT" is effectively a relay service, a way to bounce requests through a central server which can then be routed to the appropriate peer.
+          
 
           {/* WebRTC Setup Diagram */}
           <div className="diagram-container">
@@ -975,17 +967,17 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
           </div>
 
           <p>There's effectively 4 steps to a WebRTC connection:</p>
-          <ol>
-            <li>Clients connect to a central signaling server to learn about their peers.</li>
-            <li>Clients reach out to a STUN server to get their public IP address and port.</li>
-            <li>Clients share this information with each other via the signaling server.</li>
-            <li>Clients establish a direct peer-to-peer connection and start sending data.</li>
-          </ol>
+          
+            - Clients connect to a central signaling server to learn about their peers.
+            - Clients reach out to a STUN server to get their public IP address and port.
+            - Clients share this information with each other via the signaling server.
+            - Clients establish a direct peer-to-peer connection and start sending data.
+          
           <p>
             This is the happy case! In reality, sometimes these connections fail and you need to have fallbacks like our TURN server.
           </p>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             WebRTC is ideal for audio/video calling and conferencing applications. It can also occasionally be appropriate for collaborative applications like document editors, especially if they need to scale to many clients.
           </p>
@@ -1010,13 +1002,13 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
           <p>
             There's way more to cover around WebRTC than is appropriate for this guide or your interview so we'll stop here, but I hope this gives you a good starting point for thinking about this protocol!
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             LOAD BALANCING
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="load-balancing">Load Balancing</h2>
+        
+          ## Load Balancing
           <p>
             And with that we've covered the top of our stack and all the relevant protocols you'll see in System Design interviews. But how do we scale our designs? Of course there are networking implications here!
           </p>
@@ -1074,16 +1066,16 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
               </div>
             </div>
           </div>
-        </section>
+        
 
         {/* ─── Types of Load Balancing ─── */}
-        <section className="content-section">
-          <h3 id="types-lb">Types of Load Balancing</h3>
+        
+          ### Types of Load Balancing
           <p>
             We need to spread the incoming requests (load) by deciding which server should handle each request. There's two ways to handle load balancing: on the client side or on the server side. Both have their pros and cons.
           </p>
 
-          <h3 id="client-side-lb">Client-Side Load Balancing</h3>
+          ### Client-Side Load Balancing
           <p>
             With client-side load balancing, the client itself decides which server to talk to. Usually this involves the client making a request to a service registry or directory which contains the list of available servers. Then the client makes a request to one of those servers directly. The client will need to periodically poll or be pushed updates when things change.
           </p>
@@ -1091,17 +1083,17 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             Client-side load balancing can be very fast and efficient. Since the client is making the decision, it can choose the fastest server without any additional latency. Instead of using a full network hop to get routed to the right server on every request, we only need to (periodically) sync our list of servers with the server registry.
           </p>
 
-          <h4>Example: Redis Cluster</h4>
+          #### Example: Redis Cluster
           <p>
             A great example of this is Redis Cluster (read more in our Redis deep dive). Redis cluster nodes maintain a gossip protocol between each other to share information about the cluster: which nodes are present, their status, etc. Every node knows about every other node!
           </p>
           <p>
-            In order to connect to a Redis Cluster, the client will make a request to any of the nodes in the cluster and ask about both the nodes participating in the cluster and the shards of data they contain. When it comes time to read or write data, the client hashes the key to determine which shard to send the request to, then uses the locally retrieved node information to decide which node to talk to. If you send a request to the wrong node, Redis will helpfully send you a <span className="inline-code">MOVED</span> response to let you know you got the wrong node.
+            In order to connect to a Redis Cluster, the client will make a request to any of the nodes in the cluster and ask about both the nodes participating in the cluster and the shards of data they contain. When it comes time to read or write data, the client hashes the key to determine which shard to send the request to, then uses the locally retrieved node information to decide which node to talk to. If you send a request to the wrong node, Redis will helpfully send you a `MOVED` response to let you know you got the wrong node.
           </p>
 
-          <h4>Example: DNS</h4>
+          #### Example: DNS
           <p>
-            Another example of "client-side" load balancing is DNS. When you make a request to a domain name like <span className="inline-code">example.com</span>, your DNS resolver will return a rotated list of IP addresses for the domain. Each new request will get a different ordering of IP addresses (or even a different set entirely).
+            Another example of "client-side" load balancing is DNS. When you make a request to a domain name like `example.com`, your DNS resolver will return a rotated list of IP addresses for the domain. Each new request will get a different ordering of IP addresses (or even a different set entirely).
           </p>
           <p>
             Because each client gets a different ordering of IP addresses, they're also going to hit different servers. The DNS resolver is effectively doing client-side load balancing for us!
@@ -1110,7 +1102,7 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             This behavior of DNS is also how you avoid a single point of failure with a load balancer! You set up two load balancers (in different data centers or regions, to be safe) and use DNS to rotate between them. If one goes down, clients will automatically start trying the other one.
           </p>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             Client-side load balancing can work great in two different scenarios: either (1) we have a small number of clients that we control, (e.g. the Redis Cluster client, or gRPC's client-side load balancing for internal services) or (2) we have a large number of clients but we can tolerate slow updates (e.g. DNS).
           </p>
@@ -1152,11 +1144,11 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
           </Callout>
 
           <p>For all other use-cases, we'll need a dedicated load balancer.</p>
-        </section>
+        
 
         {/* ─── Dedicated Load Balancers ─── */}
-        <section className="content-section">
-          <h3 id="dedicated-lb">Dedicated Load Balancers</h3>
+        
+          ### Dedicated Load Balancers
           <p>
             We may not want our clients to have to refresh their list of servers or even know about the existence of multiple servers on the backend. Or we might have a large number of clients that we don't control but need to retrieve updates quickly.
           </p>
@@ -1187,7 +1179,7 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             Having a dedicated load balancer implies an additional hop in each request: first to the load balancer, then to the server which needs to serve the request. But in exchange we get very fast updates to our list of servers and fine-grained control over how we route requests.
           </p>
 
-          <h3 id="layer4-lb">Layer 4 Load Balancers</h3>
+          ### Layer 4 Load Balancers
           <p>
             Layer 4 load balancers operate at the transport layer (TCP/UDP). They make routing decisions based on network information like IP addresses and ports, without looking at the actual content of the packets. The effect of a L4 load balancer is as-if you randomly selected a backend server and assumed that TCP connections were established directly between the client and that server.
           </p>
@@ -1208,17 +1200,17 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
           </div>
 
           <p>Layer 4 load balancers have some key characteristics, they ...</p>
-          <ul>
-            <li>Maintain persistent TCP connections between client and server.</li>
-            <li>Are fast and efficient due to minimal packet inspection.</li>
-            <li>Cannot make routing decisions based on application data.</li>
-            <li>Are typically used when raw performance is the priority.</li>
-          </ul>
+          
+            - Maintain persistent TCP connections between client and server.
+            - Are fast and efficient due to minimal packet inspection.
+            - Cannot make routing decisions based on application data.
+            - Are typically used when raw performance is the priority.
+          
           <p>
             For example, if a client establishes a TCP connection through an L4 load balancer, that same server will handle all subsequent requests within that TCP session. This makes L4 load balancers particularly well-suited for protocols that require persistent connections, like WebSocket connections. At a conceptual level, it's as if we have a direct TCP connection between client and server which we can use to communicate at higher layers.
           </p>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             L4 load balancers are great for WebSocket connections and other protocols that require persistent connections. They're also great for high-performance applications that don't require much application-level processing.
           </p>
@@ -1226,7 +1218,7 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             If you're using websockets in your interview, you probably want to use an L4 load balancer. For everything else, a Layer 7 load balancer is probably a better fit.
           </p>
 
-          <h3 id="layer7-lb">Layer 7 Load Balancers</h3>
+          ### Layer 7 Load Balancers
           <p>
             Layer 7 load balancers operate at the application layer, understanding protocols like HTTP. They can examine the actual content of each request and make more intelligent routing decisions.
           </p>
@@ -1250,18 +1242,18 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
           </div>
 
           <p>Layer 7 load balancers have some key characteristics, they ...</p>
-          <ul>
-            <li>Terminate incoming connections and create new ones to backend servers.</li>
-            <li>Can route based on request content (URL, headers, cookies, etc.).</li>
-            <li>More CPU-intensive due to packet inspection.</li>
-            <li>Provide more flexibility and features.</li>
-            <li>Better suited for HTTP-based traffic.</li>
-          </ul>
+          
+            - Terminate incoming connections and create new ones to backend servers.
+            - Can route based on request content (URL, headers, cookies, etc.).
+            - More CPU-intensive due to packet inspection.
+            - Provide more flexibility and features.
+            - Better suited for HTTP-based traffic.
+          
           <p>
             For example, an L7 load balancer could route all API requests to one set of servers while sending web page requests to another (providing similar functionality to an API Gateway), or it could ensure that all requests from a specific user go to the same server based on a cookie. The underlying TCP connection that's made to your server via an L7 load balancer is not the same TCP connection that the client made to the load balancer — the load balancer terminates the client's connection and creates a new one to the backend server.
           </p>
 
-          <h4>Where to Use It</h4>
+          #### Where to Use It
           <p>
             L7 load balancers are ideal for HTTP-based traffic where you need intelligent routing based on request content. They're also great for SSL termination, where the load balancer handles the encryption/decryption so the backend servers don't have to.
           </p>
@@ -1272,68 +1264,68 @@ data: {"id": 100, "timestamp": "2025-01-01T00:00:10Z", "description": "Event 100
             </p>
           </Callout>
 
-          <h3 id="health-checks">Health Checks & Fault Tolerance</h3>
+          ### Health Checks & Fault Tolerance
           <p>
             Load balancers regularly send health check requests to backend servers. If a server fails to respond, it's removed from the pool and traffic is redirected to healthy servers. This automatic failover is crucial for high availability.
           </p>
 
-          <h3 id="lb-algorithms">Common Load Balancing Algorithms</h3>
-          <ul>
-            <li><strong>Round Robin</strong> — Distributes requests sequentially across servers. Simple but doesn't account for server capacity or current load.</li>
-            <li><strong>Weighted Round Robin</strong> — Like round robin but assigns more traffic to more powerful servers.</li>
-            <li><strong>Least Connections</strong> — Routes to the server with the fewest active connections. Great when request processing times vary.</li>
-            <li><strong>IP Hash</strong> — Routes based on the client's IP address, ensuring the same client always reaches the same server (useful for session stickiness).</li>
-            <li><strong>Random</strong> — Surprisingly effective for large pools. Simple implementation, statistically balanced.</li>
-          </ul>
-        </section>
+          ### Common Load Balancing Algorithms
+          
+            - **Round Robin** — Distributes requests sequentially across servers. Simple but doesn't account for server capacity or current load.
+            - **Weighted Round Robin** — Like round robin but assigns more traffic to more powerful servers.
+            - **Least Connections** — Routes to the server with the fewest active connections. Great when request processing times vary.
+            - **IP Hash** — Routes based on the client's IP address, ensuring the same client always reaches the same server (useful for session stickiness).
+            - **Random** — Surprisingly effective for large pools. Simple implementation, statistically balanced.
+          
+        
 
         {/* ═══════════════════════════════════════════════
             REGIONALIZATION & LATENCY
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="regionalization">Regionalization & Latency</h2>
+        
+          ## Regionalization & Latency
           <p>
             Data travels at the speed of light through fiber optic cables, but even light takes time. A round trip from New York to Tokyo takes ~150ms just for the network transit. When you add DNS resolution, TCP handshake, TLS negotiation, and server processing, real-world latency can be 300ms+. That's noticeable to users.
           </p>
           <p>
-            To reduce latency, we need to keep data <strong>as close to the user as possible</strong>, and keep the data a query needs <strong>as close together as possible</strong>.
+            To reduce latency, we need to keep data **as close to the user as possible**, and keep the data a query needs **as close together as possible**.
           </p>
 
-          <h3 id="cdns">Content Delivery Networks (CDNs)</h3>
+          ### Content Delivery Networks (CDNs)
           <p>
             A CDN is a globally distributed network of edge servers that cache and serve content from locations close to users. When a user in Mumbai requests an image, instead of fetching it from a server in Virginia, the CDN serves it from a nearby edge node in Mumbai — reducing latency from ~300ms to ~20ms.
           </p>
           <p>
-            CDNs work because of <strong>content cacheability</strong>. Static assets (images, CSS, JS, videos) are perfect CDN candidates. Some CDNs also support dynamic content caching and edge compute. Popular CDNs include CloudFront (AWS), Cloudflare, and Akamai.
+            CDNs work because of **content cacheability**. Static assets (images, CSS, JS, videos) are perfect CDN candidates. Some CDNs also support dynamic content caching and edge compute. Popular CDNs include CloudFront (AWS), Cloudflare, and Akamai.
           </p>
 
-          <h3 id="regional-partitioning">Regional Partitioning</h3>
+          ### Regional Partitioning
           <p>
             For applications with natural geographic boundaries, you can partition your entire infrastructure by region. Take Uber: a rider in Mumbai will never book a driver in Delhi. This means each city (or region) can have its own database, application servers, and caches — all co-located in nearby data centers.
           </p>
           <p>
             This reduces cross-region database calls, improves latency, and allows each region to scale independently based on local demand.
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             HANDLING FAILURES
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="failure-handling">Handling Failures & Fault Modes</h2>
+        
+          ## Handling Failures & Fault Modes
           <p>
             The fallacy of "the network is reliable" is one of the most dangerous assumptions in distributed systems. Servers crash, cables get cut, routers fail, and packets get dropped. Robust system design requires planning for these failures.
           </p>
 
-          <h3 id="timeouts-retries">Timeouts & Retries with Backoff</h3>
+          ### Timeouts & Retries with Backoff
           <p>
-            The most fundamental strategy for handling transient failures is <strong>timeouts</strong> combined with <strong>retries</strong>. If a request doesn't complete within a timeout, give up and try again. Having a small number of retries (typically 3) with reasonable timeouts handles most transient failures gracefully.
+            The most fundamental strategy for handling transient failures is **timeouts** combined with **retries**. If a request doesn't complete within a timeout, give up and try again. Having a small number of retries (typically 3) with reasonable timeouts handles most transient failures gracefully.
           </p>
           <p>
-            But retries can be a double-edged sword. If all clients retry simultaneously, you create a <strong>thundering herd</strong> that makes the problem worse. This is why retry strategies include <strong>exponential backoff</strong> — each retry waits longer than the previous one (e.g., 1s → 2s → 4s → 8s).
+            But retries can be a double-edged sword. If all clients retry simultaneously, you create a **thundering herd** that makes the problem worse. This is why retry strategies include **exponential backoff** — each retry waits longer than the previous one (e.g., 1s → 2s → 4s → 8s).
           </p>
           <p>
-            Adding <strong>jitter</strong> (randomness) to the backoff prevents all clients from retrying at the exact same time. Without jitter, your retries can synchronize into a periodic hammer that keeps hitting the struggling server.
+            Adding **jitter** (randomness) to the backoff prevents all clients from retrying at the exact same time. Without jitter, your retries can synchronize into a periodic hammer that keeps hitting the struggling server.
           </p>
 
           <CodeBlock language="javascript">{`// Retry with exponential backoff and jitter
@@ -1355,12 +1347,12 @@ async function fetchWithRetry(url, maxRetries = 3) {
   }
 }`}</CodeBlock>
 
-          <h3 id="idempotency">Idempotency</h3>
+          ### Idempotency
           <p>
             Retries are great — except when they have side effects. Imagine a payment system where you charge a user $10. If the request times out and you retry, you might charge them $20 instead of $10!
           </p>
           <p>
-            This is why APIs need to be <strong>idempotent</strong> — making the same request multiple times should produce the same result as making it once. Read operations (GET) are naturally idempotent. For write operations, a common approach is to use an <strong>idempotency key</strong>: a unique identifier the client includes with the request. The server checks if it has already processed a request with that key and avoids processing it again.
+            This is why APIs need to be **idempotent** — making the same request multiple times should produce the same result as making it once. Read operations (GET) are naturally idempotent. For write operations, a common approach is to use an **idempotency key**: a unique identifier the client includes with the request. The server checks if it has already processed a request with that key and avoids processing it again.
           </p>
 
           <Callout type="info" title="Idempotency Key Example">
@@ -1369,16 +1361,16 @@ async function fetchWithRetry(url, maxRetries = 3) {
             </p>
           </Callout>
 
-          <h3 id="circuit-breakers">Circuit Breakers</h3>
+          ### Circuit Breakers
           <p>
-            When a downstream service goes down completely, retrying will only make things worse. A <strong>circuit breaker</strong> — inspired by electrical circuit breakers — detects repeated failures and "trips," temporarily stopping all requests to the failing service. This gives the failing service time to recover without being hammered by requests.
+            When a downstream service goes down completely, retrying will only make things worse. A **circuit breaker** — inspired by electrical circuit breakers — detects repeated failures and "trips," temporarily stopping all requests to the failing service. This gives the failing service time to recover without being hammered by requests.
           </p>
           <p>Circuit breakers have three states:</p>
-          <ul>
-            <li><strong>Closed (normal)</strong> — Requests flow through normally. Failures are counted.</li>
-            <li><strong>Open (tripped)</strong> — After failures exceed a threshold, the circuit opens. All requests immediately fail-fast without hitting the downstream service.</li>
-            <li><strong>Half-Open (testing)</strong> — After a cooldown period, a few test requests are allowed through. If they succeed, the circuit closes. If they fail, it stays open.</li>
-          </ul>
+          
+            - **Closed (normal)** — Requests flow through normally. Failures are counted.
+            - **Open (tripped)** — After failures exceed a threshold, the circuit opens. All requests immediately fail-fast without hitting the downstream service.
+            - **Half-Open (testing)** — After a cooldown period, a few test requests are allowed through. If they succeed, the circuit closes. If they fail, it stays open.
+          
 
           <div className="diagram-container">
             <div className="diagram-title">Circuit Breaker States</div>
@@ -1399,35 +1391,35 @@ async function fetchWithRetry(url, maxRetries = 3) {
           </div>
 
           <p>
-            Circuit breakers prevent <strong>cascading failures</strong> — where one failing service causes a chain reaction that brings down the entire system. They're especially useful in front of databases, third-party APIs, and any service that can become a bottleneck.
+            Circuit breakers prevent **cascading failures** — where one failing service causes a chain reaction that brings down the entire system. They're especially useful in front of databases, third-party APIs, and any service that can become a bottleneck.
           </p>
-        </section>
+        
 
         {/* ═══════════════════════════════════════════════
             WRAPPING UP
             ═══════════════════════════════════════════════ */}
-        <section className="content-section">
-          <h2 id="wrapping-up">Wrapping Up</h2>
+        
+          ## Wrapping Up
 
           <div className="takeaway-card">
             <h3>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               Key Takeaways
             </h3>
-            <ul>
-              <li><strong>Networking Layers:</strong> Understand the Network (L3), Transport (L4), and Application (L7) layers and which protocols operate where.</li>
-              <li><strong>TCP vs UDP:</strong> Default to TCP for reliability. Use UDP when speed matters more than perfection. QUIC bridges both worlds.</li>
-              <li><strong>Application Protocols:</strong> Default to REST for APIs. Use gRPC for internal microservices. Use SSE for server-push, WebSockets for bidirectional real-time, GraphQL for flexible client-driven queries.</li>
-              <li><strong>Load Balancing:</strong> L4 for raw throughput and persistent connections, L7 for intelligent routing. Use health checks for fault tolerance.</li>
-              <li><strong>Reduce Latency:</strong> Use CDNs for cacheable content. Regional partitioning for geographically bounded data.</li>
-              <li><strong>Handle Failures:</strong> Timeouts + retries with exponential backoff and jitter. Idempotency keys for safe retries. Circuit breakers to prevent cascading failures.</li>
-            </ul>
+            
+              - **Networking Layers:** Understand the Network (L3), Transport (L4), and Application (L7) layers and which protocols operate where.
+              - **TCP vs UDP:** Default to TCP for reliability. Use UDP when speed matters more than perfection. QUIC bridges both worlds.
+              - **Application Protocols:** Default to REST for APIs. Use gRPC for internal microservices. Use SSE for server-push, WebSockets for bidirectional real-time, GraphQL for flexible client-driven queries.
+              - **Load Balancing:** L4 for raw throughput and persistent connections, L7 for intelligent routing. Use health checks for fault tolerance.
+              - **Reduce Latency:** Use CDNs for cacheable content. Regional partitioning for geographically bounded data.
+              - **Handle Failures:** Timeouts + retries with exponential backoff and jitter. Idempotency keys for safe retries. Circuit breakers to prevent cascading failures.
+            
           </div>
 
           <p>
             Networking decisions impact every aspect of your system — from latency and throughput to reliability and security. In your interviews, be prepared to justify your networking choices based on the specific requirements. There's rarely a single right answer; interviewers want to see how you think through tradeoffs.
           </p>
-        </section>
+        
 
         {/* ─── Article Navigation ─── */}
         <nav className="article-nav">
@@ -1439,7 +1431,4 @@ async function fetchWithRetry(url, maxRetries = 3) {
             </div>
           </a>
         </nav>
-      </article>
-    </main>
-  );
-}
+      

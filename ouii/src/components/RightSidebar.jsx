@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import './Sidebar.css';
 
 const TOC_BY_ARTICLE = {
@@ -358,8 +359,9 @@ const TOC_BY_ARTICLE = {
   ]
 };
 
-export default function RightSidebar({ activeArticleId }) {
-  const tocItems = TOC_BY_ARTICLE[activeArticleId] || TOC_BY_ARTICLE['networking'];
+export default function RightSidebar() {
+  const { articleId } = useParams();
+  const tocItems = TOC_BY_ARTICLE[articleId] || TOC_BY_ARTICLE['networking'];
   
   const [activeId, setActiveId] = useState(tocItems[0]?.id);
   const [copied, setCopied] = useState(false);
@@ -368,7 +370,7 @@ export default function RightSidebar({ activeArticleId }) {
   // Reset active ID when article changes
   useEffect(() => {
     setActiveId(tocItems[0]?.id);
-  }, [activeArticleId, tocItems]);
+  }, [articleId, tocItems]);
 
   useEffect(() => {
     const handleIntersect = (entries) => {

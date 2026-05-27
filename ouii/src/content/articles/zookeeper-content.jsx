@@ -1,12 +1,11 @@
 import React from 'react';
-import '../MainContent.css';
-import CodeBlock from '../ui/CodeBlock';
-import Callout from '../ui/Callout';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
 
-export default function ZooKeeper() {
+export default function OldContent() {
   return (
-    <main className="content-scrollable">
-      <article>
+    <>
+
         {/* ─── Header ─── */}
         <div className="article-header">
           <div className="breadcrumb">
@@ -227,7 +226,7 @@ export default function ZooKeeper() {
             </div>
           </a>
         </nav>
-      </article>
-    </main>
+      
+    </>
   );
 }
