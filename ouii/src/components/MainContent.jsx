@@ -4,7 +4,7 @@ import { VALID_ARTICLE_IDS } from '../config/navigation';
 import { usePageTitle } from '../hooks/usePageTitle';
 import './MainContent.css';
 
-import NetworkingEssentials from '../content/articles/networking.mdx';
+import NetworkingEssentials from '../content/articles/networking-essentials.mdx';
 import DbIndexing from '../content/articles/db-indexing.mdx';
 import Caching from '../content/articles/caching.mdx';
 import Sharding from '../content/articles/sharding.mdx';
