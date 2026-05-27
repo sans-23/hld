@@ -1,0 +1,38 @@
+<USER_REQUEST>
+love u bro, lets do it for next topic
+
+Core Concepts
+API Design
+Learn about API design for system design interviews
+
+Watch Video Walkthrough
+Watch the author walk through the problem step-by-step
+
+In system design interviews, you'll want to define how clients interact with your system as part of the API step in the Delivery framework.
+API design follows predictable patterns. You'll pick a protocol, define your resources, and specify how clients pass data and get responses back. This article won't make you a master in API design, but it should cover all the basics needed to impress in this 5-minute period of your system design interview.
+Before we go deep here, I want to make one thing super clear: most interviewers don't care deeply about your API design being perfect. They want to see that you can design a reasonable API and move on to the more complex parts of your system.
+That said, if you're interviewing for frontend or product roles, API design matters more since you'll be working closely with APIs daily. Also, for junior roles, there's less expectation on your ability to design distributed systems, so there may be more time spent in the interview on APIs.
+API Types
+In an interview, you'll typically choose between three main API protocols:
+REST (Representational State Transfer) - REST uses standard HTTP methods (GET, POST, PUT, DELETE) to manipulate resources identified by URLs. For standard CRUD operations in web and mobile applications, REST maps naturally to your database operations and HTTP semantics, making it the go-to protocol for most web services. This should be your default choice.
+GraphQL - Unlike REST's fixed endpoints, GraphQL uses a single endpoint with a query language that lets clients specify exactly what data they need. Think about a mobile app that needs only basic user information versus a web dashboard that displays comprehensive analytics - with REST, you'd either create multiple endpoints or force clients to fetch more data than they need, but GraphQL lets each client re
+<truncated 24173 bytes>
+}
+1. Is the user authenticated? (valid JWT token)
+2. Is the user authorized? (owns this booking OR is admin)
+At most, in an interview you'd just mention which endpoints can be accessed by which roles, though more times than not this distinction is not relevant.
+Rate Limiting and Throttling
+Rate limiting prevents abuse by restricting how many requests a client can make in a given time period. This protects your system from both malicious attacks and accidental overuse.
+Common strategies include:
+Per-user limits: 1000 requests per hour per authenticated user
+Per-IP limits: 100 requests per hour for unauthenticated requests
+Endpoint-specific limits: 10 booking attempts per minute to prevent ticket scalping
+You typically implement rate limiting at the API gateway level or using middleware in your application. When limits are exceeded, return a 429 Too Many Requests status code.
+In interviews, mentioning rate limiting shows you understand production concerns, but don't spend time designing the specific algorithms unless asked. A simple "we'll implement rate limiting to prevent abuse" is usually sufficient.
+Conclusion
+API design in system design interviews is about demonstrating solid engineering judgment, not creating perfect specifications. Focus on choosing the right protocol for your use case (usually REST), modeling your resources clearly, and showing you understand the basics of authentication and security.
+It's all about balance in an interview. Spend enough time to show you can design a reasonable API, but don't get bogged down in details when there are bigger architectural challenges to tackle. Your interviewer wants to see that you can build systems that work, not that you've memorized every HTTP status code. In practice, candidates mess up more often by spending too much time on API design than by underinvesting. Do your best to not spend more than 5 minutes outlining your APIs in the interview.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-05-27T14:40:41+05:30.
+</ADDITIONAL_METADATA>
