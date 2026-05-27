@@ -76,14 +76,18 @@
 @media (max-width: 1024px) {
   .top-nav {
     padding: 0 16px;
+    justify-content: center;
+    position: relative;
   }
   .mobile-menu-btn {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: absolute;
+    left: 16px;
   }
   .logo-text {
-    display: none;
+    display: block;
   }
   .nav-actions {
     display: none;
