@@ -22,7 +22,7 @@ export const SECTIONS = [
     items: [
       { id: 'real-time', label: 'Real-time Updates', href: '/real-time', status: 'default' },
       { id: 'contention', label: 'Dealing with Contention', href: '/contention', status: 'default' },
-      { id: 'multi-step', label: 'Multi-step Processes', href: '/multi-step', status: 'locked' },
+      { id: 'multi-step', label: 'Multi-step Processes', href: '/multi-step', status: 'default' },
       { id: 'scaling-reads', label: 'Scaling Reads', href: '/scaling-reads', status: 'locked' },
       { id: 'scaling-writes', label: 'Scaling Writes', href: '/scaling-writes', status: 'locked' },
       { id: 'large-blobs', label: 'Handling Large Blobs', href: '/large-blobs', status: 'locked' },

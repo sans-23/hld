@@ -1,0 +1,641 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="#core-concepts">Patterns</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Multi-step Processes</span>
+  </div>
+  <h1>Multi-step Processes</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Learn how to design distributed transactions and coordinate multi-service workflows reliably.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Concurrency & Data Systems
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<div className="video-walkthrough-banner">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+  <div>
+    <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+    <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+  </div>
+</div>
+
+<p>
+  In a monolithic architecture with a single database, keeping data consistent across multiple tables is easy: we start an ACID database transaction, perform updates, and either commit them all or roll back on failure.
+</p>
+<p>
+  But in a distributed system where different microservices own separate databases, a single user request (e.g. buying a product) requires executing operations across multiple systems. Because we cannot execute a single database transaction across network boundaries, we need patterns to coordinate these multi-step processes.
+</p>
+
+<section className="content-section">
+  <h2 id="core-problem">The Core Problem</h2>
+  <p>
+    Consider an e-commerce order process spanning three databases:
+  </p>
+  <ol>
+    <li><strong>Order DB:</strong> Creates an order record in state `PENDING`.</li>
+    <li><strong>Payment DB:</strong> Charges the user's wallet.</li>
+    <li><strong>Inventory DB:</strong> Decrements item count.</li>
+  </ol>
+  <p>
+    If the network drops, or the inventory service crashes after payment succeeds, our system is left in an inconsistent state: the user was charged, but the order is unfulfilled and stock was not allocated.
+  </p>
+  
+  <Callout type="warning">
+    <p>
+      Avoid the "dual-write" anti-pattern: updating a local database and immediately publishing an event to a message broker in normal application code. If the database update succeeds but the server crashes before sending the message, downstream services will never know, leaving the system permanently out of sync.
+    </p>
+  </Callout>
+</section>
+
+<section className="content-section">
+  <h2 id="two-phase-commit">Two-Phase Commit (2PC)</h2>
+  <p>
+    Two-Phase Commit is a low-level consensus protocol that provides strong consistency across multiple distributed databases. It relies on a central **Coordinator** that directs the participants in two phases:
+  </p>
+  
+  <div className="diagram-container">
+    <div className="diagram-title">Two-Phase Commit (2PC) Flow</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+      
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>Coordinator</div>
+      </div>
+
+      {/* Prepare Phase */}
+      <div style={{ textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+        Phase 1: Prepare (Voting)
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="25%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="26%" y="15" fill="var(--primary)" fontSize="9">Prepare?</text>
+        <line x1="50%" y1="0" x2="75%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="68%" y="15" fill="var(--primary)" fontSize="9">Prepare?</text>
+      </svg>
+
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--connection" style={{ maxWidth: '130px', fontStyle: 'normal' }}>Participant 1</div>
+        <div className="diagram-box diagram-box--connection" style={{ maxWidth: '130px', fontStyle: 'normal' }}>Participant 2</div>
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        <line x1="25%" y1="0" x2="50%" y2="30" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+        <text x="28%" y="18" fill="#15448e" fontSize="9">VOTE_COMMIT</text>
+        <line x1="75%" y1="0" x2="50%" y2="30" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+        <text x="58%" y="18" fill="#15448e" fontSize="9">VOTE_COMMIT</text>
+      </svg>
+
+      <div style={{ textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+        Phase 2: Commit (Decision)
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="25%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="28%" y="15" fill="var(--primary)" fontSize="9">COMMIT</text>
+        <line x1="50%" y1="0" x2="75%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="66%" y="15" fill="var(--primary)" fontSize="9">COMMIT</text>
+      </svg>
+
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '130px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>Committed</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '130px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>Committed</div>
+      </div>
+
+    </div>
+  </div>
+
+  <p>
+    <strong>How it works:</strong>
+  </p>
+  <ol>
+    <li><strong>Phase 1 (Prepare):</strong> The coordinator sends a `Prepare` message to all participants. Each participant locks its local database resource, executes the transaction logic locally, and votes: `VOTE_COMMIT` (if successful) or `VOTE_ABORT` (if failed).</li>
+    <li><strong>Phase 2 (Commit):</strong> If all participants voted `VOTE_COMMIT`, the coordinator broadcasts a `Commit` command. The participants write the updates and release their locks. If any participant voted `VOTE_ABORT` (or timed out), the coordinator broadcasts a `Rollback` command.</li>
+  </ol>
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Guarantees strong consistency. The entire process behaves like a single transactional boundary (all-or-nothing).</li>
+    <li><strong>Cons:</strong> **Highly Blocking**. Participants hold database resource locks between Phase 1 and Phase 2. If the coordinator crashes or the network lags during Phase 1, participants are stuck holding locks indefinitely, completely paralyzing the database. As a result, 2PC is rarely used in high-scale distributed microservices.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="saga-pattern">The Saga Pattern</h2>
+  <p>
+    The Saga pattern is the industry standard for coordinating multi-step workflows. Instead of holding global locks, a Saga is a sequence of **local database transactions**.
+  </p>
+  <p>
+    Each service performs its local database update and emits an event. If a step fails, the Saga is responsible for executing **compensating transactions** in reverse order to rollback previous successful updates.
+  </p>
+
+  <Callout type="info">
+    <p>
+      A compensating transaction is a semantic undo. For example, if a step deducted $100 from a wallet, the compensating transaction is to credit $100. Sagas trade immediate consistency for eventual consistency: other transactions can read intermediate states while the Saga is running.
+    </p>
+  </Callout>
+
+  <h3 id="choreography-saga">Choreography-based Sagas</h3>
+  <p>
+    Choreography Sagas use decentralized coordination. Services react to events from other services and execute local actions autonomously.
+  </p>
+
+  {/* Choreography Saga Flowchart */}
+  <div className="diagram-container">
+    <div className="diagram-title">Choreography Saga Flow</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+      
+      <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
+        
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>
+          <strong>Order Service</strong>
+          <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Create Order</div>
+        </div>
+
+        <svg width="40" height="12" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="6" x2="40" y2="6" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        </svg>
+
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>
+          <strong>Payment Service</strong>
+          <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Charge Wallet</div>
+        </div>
+
+        <svg width="40" height="12" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="6" x2="40" y2="6" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        </svg>
+
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>
+          <strong>Inventory Service</strong>
+          <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Reserve Stock</div>
+        </div>
+
+      </div>
+
+      <div className="callout-box callout-box--info" style={{ margin: '16px 0 0 0', width: '100%', maxWidth: '560px' }}>
+        <p>No central manager exists. The Order service emits `OrderCreated`, the Payment service reacts and emits `PaymentCharged`, the Inventory service reacts and reserves stock.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Loose coupling. Services do not know about each other's existence beyond event structures. Simple to implement for 2–3 step workflows.</li>
+    <li><strong>Cons:</strong> **Event spaghetti**. As steps grow, it becomes extremely difficult to trace the workflow, monitor state, or prevent cyclic dependencies (e.g., Service A triggers Service B which triggers Service A).</li>
+  </ul>
+
+  <h3 id="orchestration-saga">Orchestration-based Sagas</h3>
+  <p>
+    Orchestration Sagas centralize coordination. A dedicated **Saga Orchestrator** manages the state machine, triggers local service updates, and initiates compensating rollbacks if any service fails.
+  </p>
+
+  {/* Orchestration Saga Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Orchestration Saga Coordinator Flow</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '200px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a', fontStyle: 'normal' }}>
+        <strong>Saga Orchestrator</strong>
+        <div style={{ fontSize: '0.65rem', marginTop: '2px', opacity: 0.8 }}>State Machine Coordinator</div>
+      </div>
+
+      <svg width="100%" height="40" style={{ overflow: 'visible' }}>
+        {/* Orchestrator to Payment */}
+        <line x1="50%" y1="0" x2="20%" y2="40" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="22%" y="15" fill="var(--primary)" fontSize="9">1. Charge</text>
+        
+        {/* Orchestrator to Inventory */}
+        <line x1="50%" y1="0" x2="50%" y2="40" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="52%" y="15" fill="var(--primary)" fontSize="9">2. Reserve</text>
+
+        {/* Orchestrator to Shipping */}
+        <line x1="50%" y1="0" x2="80%" y2="40" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="68%" y="15" fill="var(--primary)" fontSize="9">3. Ship</text>
+      </svg>
+
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '120px' }}>Payment Svc</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '120px' }}>Inventory Svc</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '120px' }}>Shipping Svc</div>
+      </div>
+
+    </div>
+  </div>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Java Spring Boot Saga Orchestrator Example
+@Component
+public class OrderSagaOrchestrator {
+    
+    @Autowired private PaymentClient paymentClient;
+    @Autowired private InventoryClient inventoryClient;
+    @Autowired private ShippingClient shippingClient;
+    
+    public void executeOrderWorkflow(Order order) {
+        // Step 1: Charge Payment
+        boolean paymentSuccess = paymentClient.charge(order.getUserId(), order.getAmount());
+        if (!paymentSuccess) {
+            updateOrderState(order.getId(), "FAILED_PAYMENT");
+            return;
+        }
+        
+        // Step 2: Reserve Inventory
+        boolean inventorySuccess = inventoryClient.reserve(order.getProductId(), order.getQty());
+        if (!inventorySuccess) {
+            // Initiate rollback for Step 1
+            paymentClient.refund(order.getUserId(), order.getAmount());
+            updateOrderState(order.getId(), "FAILED_OUT_OF_STOCK");
+            return;
+        }
+        
+        // Step 3: Schedule Shipping
+        boolean shippingSuccess = shippingClient.schedule(order.getId());
+        if (!shippingSuccess) {
+            // Initiate rollback for Step 2 and Step 1
+            inventoryClient.release(order.getProductId(), order.getQty());
+            paymentClient.refund(order.getUserId(), order.getAmount());
+            updateOrderState(order.getId(), "FAILED_SHIPPING");
+            return;
+        }
+        
+        updateOrderState(order.getId(), "COMPLETED");
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python Saga Orchestrator Example
+import logging
+
+class OrderSagaOrchestrator:
+    def __init__(self, payment_client, inventory_client, shipping_client):
+        self.payment = payment_client
+        self.inventory = inventory_client
+        self.shipping = shipping_client
+
+    def execute_saga(self, order_id: str, user_id: str, product_id: str, amount: float, qty: int) -> bool:
+        # Define forward actions and their exact reverse compensation actions
+        steps = [
+            {
+                "name": "charge_payment",
+                "action": lambda: self.payment.charge(user_id, amount),
+                "compensate": lambda: self.payment.refund(user_id, amount)
+            },
+            {
+                "name": "reserve_stock",
+                "action": lambda: self.inventory.reserve(product_id, qty),
+                "compensate": lambda: self.inventory.release(product_id, qty)
+            },
+            {
+                "name": "schedule_shipment",
+                "action": lambda: self.shipping.schedule(order_id),
+                "compensate": lambda: self.shipping.cancel(order_id)
+            }
+        ]
+
+        executed_steps = []
+        
+        for step in steps:
+            try:
+                success = step["action"]()
+                if not success:
+                    raise RuntimeError(f"Step {step['name']} returned failure")
+                executed_steps.append(step)
+            except Exception as e:
+                logging.error(f"Saga failed at {step['name']}. Triggering compensation...")
+                self._rollback(executed_steps)
+                return False
+        return True
+
+    def _rollback(self, executed_steps):
+        # Compensations are executed in strict reverse order of execution
+        for step in reversed(executed_steps):
+            try:
+                step["compensate"]()
+            except Exception as e:
+                # Log to dead-letter queue or persistent retry logic if compensation fails
+                logging.critical(f"COMPENSATION FAILURE: {step['name']}. Requires manual intervention.")`} />
+  </CodeTabs>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Flow state is explicit. Easy to debug, monitor, and prevent cyclic loops. Centralizes the orchestration logic for complex, multi-service workflows.</li>
+    <li><strong>Cons:</strong> Risk of centralizing too much business logic in the orchestrator, turning it into a "god service." Additionally, orchestrator state must be stored durably to handle orchestrator crash restarts.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="transactional-outbox">Transactional Outbox Pattern</h2>
+  <p>
+    In event-driven Sagas, services must update their local database and publish events to message brokers like Kafka. Doing this in two separate operations invites failures.
+  </p>
+  <p>
+    The **Transactional Outbox Pattern** solves the dual-write problem by saving the event directly in the same database inside an `Outbox` table, using the same local transaction.
+  </p>
+
+  {/* Transactional Outbox Flowchart */}
+  <div className="diagram-container">
+    <div className="diagram-title">Transactional Outbox Pattern</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', width: '100%', flexWrap: 'wrap' }}>
+        
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Application</div>
+        
+        <svg width="40" height="12" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="6" x2="40" y2="6" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        </svg>
+
+        <div style={{ background: '#f5f5f5', border: '1px solid #ccc', padding: '12px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '280px' }}>
+          <strong>Single Local Database Transaction</strong>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'center' }}>
+            <span className="fetch-arrow-item" style={{ background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>Order Table</span>
+            <span className="fetch-arrow-item" style={{ background: '#ffebee', color: '#c62828', borderColor: '#ffcdd2' }}>Outbox Table</span>
+          </div>
+        </div>
+
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        {/* Outbox Table to CDC */}
+        <line x1="72%" y1="0" x2="72%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="74%" y="15" fill="var(--primary)" fontSize="9">Tail DB Binlog</text>
+      </svg>
+
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', width: '100%', flexWrap: 'wrap' }}>
+        
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '220px' }}>CDC / Relay (Debezium)</div>
+        
+        <svg width="40" height="12" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="6" x2="40" y2="6" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        </svg>
+
+        <div className="diagram-box diagram-box--connection" style={{ maxWidth: '160px' }}>Kafka Message Bus</div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <p>
+    <strong>How it works:</strong>
+  </p>
+  <ol>
+    <li>The application updates its entities (e.g. inserting an Order) and writes a message event row containing the payload to the `Outbox` table in the *same* database transaction.</li>
+    <li>A separate background process—a **Message Relay** (which can be a Change Data Capture [CDC] engine like Debezium tailing the DB transaction log, or a simple database poller)—reads new rows from the `Outbox` table.</li>
+    <li>The relay publishes the events to Kafka/RabbitMQ. Once published successfully, the relay deletes or marks the outbox rows as processed.</li>
+  </ol>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Java Spring Boot Transactional Outbox Example
+@Service
+public class OrderService {
+    @Autowired private OrderRepository orderRepository;
+    @Autowired private OutboxRepository outboxRepository;
+
+    @Transactional
+    public void createOrder(Order order) {
+        // Save Order entity
+        orderRepository.save(order);
+        
+        // Save Outbox message in the same local transaction
+        OutboxEvent event = new OutboxEvent();
+        event.setAggregateType("ORDER");
+        event.setAggregateId(order.getId());
+        event.setPayload(convertToJSON(order));
+        
+        outboxRepository.save(event);
+        // Both commits succeed or rollback atomically
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python SQLAlchemy Transactional Outbox Example
+from sqlalchemy.orm import Session
+import json
+
+def create_order(session: Session, order_data: dict):
+    # Save Order Entity
+    new_order = Order(
+        user_id=order_data["user_id"],
+        product_id=order_data["product_id"],
+        amount=order_data["amount"]
+    )
+    session.add(new_order)
+    
+    # Generate database ID
+    session.flush()
+    
+    # Save Outbox Event in the exact same transaction
+    outbox_event = Outbox(
+        aggregate_type="ORDER",
+        aggregate_id=new_order.id,
+        payload=json.dumps(order_data)
+    )
+    session.add(outbox_event)
+    
+    session.commit()  # Commits atomically`} />
+  </CodeTabs>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Guarantees **at-least-once delivery** without distributed locks. Events are never lost if the server crashes immediately after committing business updates.</li>
+    <li><strong>Cons:</strong> **At-least-once delivery means duplicates can occur**. The message relay might publish a message to Kafka, crash before marking the outbox row as processed, restart, and publish the same message again. Downstream consumers **must be idempotent**.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="problem-breakdowns">Problem Breakdowns (Multi-step in Practice)</h2>
+  <p>
+    Let's analyze how major system design problems apply these multi-step transaction patterns.
+  </p>
+
+  <h3>Ticketmaster / Flight Booking (Multi-Leg Reservations)</h3>
+  <ul>
+    <li><strong>Problem:</strong> A user books a multi-leg flight (NYC to London, London to Paris). If leg 2 booking fails, leg 1 must be cancelled.</li>
+    <li><strong>Design Selection:</strong> **Orchestration-based Saga**. The flight reservation service acts as the Saga Orchestrator. It requests reservations for Leg 1 and Leg 2 sequentially. If Leg 2 fails (e.g. flight fully booked), the orchestrator triggers the compensation action to cancel Leg 1 and process refunds.</li>
+  </ul>
+
+  <h3>E-Commerce Order Fulfillment (Order Processing)</h3>
+  <ul>
+    <li><strong>Problem:</strong> The classic Payment &rarr; Inventory &rarr; Shipping workflow.</li>
+    <li><strong>Design Selection:</strong> **Orchestration-based Saga + Transactional Outbox**. Using an Orchestrator makes the order lifecycle explicit and easy to audit. Combining it with the Transactional Outbox pattern guarantees that the Orchestrator's step transitions are published to Kafka reliably even under hardware crashes.</li>
+  </ul>
+
+  <h3>Cross-Bank Payments (Ledger Transfers)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Transferring money from Bank A to Bank B. Failure to coordinate leaves the ledger unbalanced.</li>
+    <li><strong>Design Selection:</strong> **Two-Phase Commit (2PC) or Choreography with Escrow**. If both banks run within a trusted, shared database cluster (e.g. Spanner), low-level 2PC guarantees atomic clearing. For separate banks, Bank A creates a pending debit and locks the funds in an "Escrow" state, emits an event, Bank B credits the target, and once Bank B sends an ACK event back, Bank A finalizes the debit.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Transaction Patterns Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Consistency Model</th>
+          <th>Lock Duration</th>
+          <th>Complexity</th>
+          <th>Scaling Limits</th>
+          <th>Ideal Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Two-Phase Commit (2PC)</td>
+          <td>Immediate (ACID)</td>
+          <td>Long (blocking)</td>
+          <td>Low (infra level)</td>
+          <td>Very Low (locks halt DBs)</td>
+          <td>Critical internal database updates, banking ledgers</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Choreography Saga</td>
+          <td>Eventual (BASE)</td>
+          <td>None</td>
+          <td>Medium</td>
+          <td>High</td>
+          <td>Simple workflows (2–3 steps), loose coupling</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Orchestration Saga</td>
+          <td>Eventual (BASE)</td>
+          <td>None</td>
+          <td>High (needs coordinator)</td>
+          <td>High</td>
+          <td>Complex business workflows, multi-leg bookings</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Transactional Outbox</td>
+          <td>At-Least-Once Event Delivery</td>
+          <td>None</td>
+          <td>Medium</td>
+          <td>Very High</td>
+          <td>Reliable database-to-messaging pipeline integration</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Multi-step processes represent the shift from local databases to distributed systems. In interviews, establish whether the product requires strong immediate consistency (reaching for 2PC/Escrows) or eventually consistent Sagas, and always explain how you resolve the dual-write problem.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Avoid 2PC for high scale:</strong> Mention 2PC to show theoretical knowledge of distributed ACID, but quickly rule it out for microservices due to blocking lock footprints.</li>
+      <li><strong>Use Orchestrators for complex business flows:</strong> Centralized Sagas are much easier to trace and monitor in production compared to Choreography event spaghetti.</li>
+      <li><strong>Combine Sagas with Outbox:</strong> Explain that Sagas publish events using the Transactional Outbox pattern so crashes do not result in lost messages.</li>
+      <li><strong>Enforce consumer idempotency:</strong> Because outbox message relays guarantee at-least-once delivery, always state that consumers check event IDs against a processed database index.</li>
+    </ul>
+  </div>
+</section>

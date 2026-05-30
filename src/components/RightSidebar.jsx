@@ -102,6 +102,17 @@ const TOC_BY_ARTICLE = {
     { id: 'comparison-matrix', label: 'Concurrency Matrix' },
     { id: 'conclusion', label: 'Conclusion' },
   ],
+  'multi-step': [
+    { id: 'core-problem', label: 'The Core Problem' },
+    { id: 'two-phase-commit', label: 'Two-Phase Commit (2PC)' },
+    { id: 'saga-pattern', label: 'The Saga Pattern' },
+    { id: 'choreography-saga', label: '— Choreography Sagas' },
+    { id: 'orchestration-saga', label: '— Orchestration Sagas' },
+    { id: 'transactional-outbox', label: 'Transactional Outbox' },
+    { id: 'problem-breakdowns', label: 'Problem Breakdowns' },
+    { id: 'comparison-matrix', label: 'Transaction Matrix' },
+    { id: 'conclusion', label: 'Conclusion' },
+  ],
   'sharding': [
     { id: 'what-is-partitioning', label: 'What is Partitioning?' },
     { id: 'what-is-sharding', label: 'What is Sharding?' },
