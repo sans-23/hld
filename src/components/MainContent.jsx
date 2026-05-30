@@ -24,6 +24,7 @@ import Flink from '../content/articles/flink.mdx';
 import ZooKeeper from '../content/articles/zookeeper.mdx';
 import TimeSeriesDatabases from '../content/articles/time-series.mdx';
 import RealTime from '../content/articles/real-time.mdx';
+import Contention from '../content/articles/contention.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -54,6 +55,7 @@ export default function MainContent() {
     if (articleId === 'zookeeper') return <ZooKeeper />;
     if (articleId === 'time-series') return <TimeSeriesDatabases />;
     if (articleId === 'real-time') return <RealTime />;
+    if (articleId === 'contention') return <Contention />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;

@@ -90,6 +90,18 @@ const TOC_BY_ARTICLE = {
     { id: 'comparison-matrix', label: 'Technology Decision Matrix' },
     { id: 'conclusion', label: 'Conclusion' },
   ],
+  'contention': [
+    { id: 'core-problem', label: 'The Core Problem' },
+    { id: 'concurrency-control', label: 'Concurrency Control' },
+    { id: 'pessimistic-locking', label: '— Pessimistic Locking' },
+    { id: 'optimistic-locking', label: '— Optimistic Locking (OCC)' },
+    { id: 'atomic-updates', label: '— Database Atomic Updates' },
+    { id: 'queue-serialization', label: '— Queue-Based Serialization' },
+    { id: 'partitioned-counters', label: 'Partitioned Counters' },
+    { id: 'problem-breakdowns', label: 'Problem Breakdowns' },
+    { id: 'comparison-matrix', label: 'Concurrency Matrix' },
+    { id: 'conclusion', label: 'Conclusion' },
+  ],
   'sharding': [
     { id: 'what-is-partitioning', label: 'What is Partitioning?' },
     { id: 'what-is-sharding', label: 'What is Sharding?' },

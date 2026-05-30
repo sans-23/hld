@@ -1,0 +1,699 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="#core-concepts">Patterns</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Dealing with Contention</span>
+  </div>
+  <h1>Dealing with Contention</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master strategies for managing concurrent writes to shared resources under high traffic.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Concurrency & Data Systems
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  Write contention occurs when multiple concurrent clients attempt to modify the exact same resource or database row at the same time. In flash sales, hot ticketing events, or viral social media updates, this concentration of traffic on a single database record creates severe bottlenecks.
+</p>
+<p>
+  This guide covers the major concurrency control architectures, helps you weigh their tradeoffs (locking vs. serialization vs. distributed partitioning), and provides a decision framework for your next system design interview.
+</p>
+
+<section className="content-section">
+  <h2 id="core-problem">The Core Problem</h2>
+  <p>
+    When two transactions read the same data, calculate updates in memory, and write them back, one write inevitably overwrites the other. This is the **Lost Update Problem**.
+  </p>
+  <p>
+    If the database resolves this by locking the row, subsequent transactions are blocked. Under high write traffic, this blocking causes:
+  </p>
+  <ul>
+    <li><strong>Connection Pool Exhaustion:</strong> Threads stack up waiting for the row lock, consuming server connections until the pool is empty and all other operations fail.</li>
+    <li><strong>High Latency:</strong> The tail latency (p99) rises exponentially as clients wait in line.</li>
+    <li><strong>Deadlocks:</strong> Concurrent transactions locking multiple resources in different orders crash the database engine.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="concurrency-control">Concurrency Control</h2>
+  <p>
+    To protect data integrity, systems employ different concurrency control strategies. In interviews, you must justify your design by selecting one of the following approaches.
+  </p>
+
+  <h3 id="pessimistic-locking">Pessimistic Locking</h3>
+  <p>
+    Pessimistic locking assumes conflicts are highly likely. A transaction blocks other transactions by acquiring an exclusive lock on the row before reading and updating it.
+  </p>
+  <p>
+    In SQL, this is achieved using the `FOR UPDATE` clause, which locks the row until the transaction commits or aborts.
+  </p>
+
+  <div className="diagram-container">
+    <div className="diagram-title">Pessimistic Locking Sequence</div>
+    <div className="sequence-diagram">
+      <div className="sequence-participants">
+        <div className="sequence-participant">Txn A (Client 1)</div>
+        <div className="sequence-participant">Database Row</div>
+        <div className="sequence-participant">Txn B (Client 2)</div>
+      </div>
+      <div className="sequence-steps">
+        <div className="sequence-step">
+          <div className="sequence-label">Acquire Lock</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>SELECT ... FOR UPDATE</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step" style={{ background: 'rgba(21, 68, 142, 0.05)', borderRadius: '4px' }}>
+          <div className="sequence-label">Row Locked</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#15448e', fontStyle: 'italic', textAlign: 'center' }}>
+              Row exclusive lock held by Txn A
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="50%" y2="4" stroke="#15448e" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Lock Attempt</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#888' }}>SELECT ... FOR UPDATE (Blocked)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="50%" y2="4" stroke="#888" strokeWidth="1.5" strokeDasharray="3,3" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-divider">Txn A Modifies & Commits</div>
+        <div className="sequence-step">
+          <div className="sequence-label">Release Lock</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>COMMIT (Releases Lock)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Lock Granted</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#15448e' }}>Lock acquired by Txn B</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="100%" y2="4" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Spring Data JPA Pessimistic Lock example
+@Repository
+public interface InventoryRepository extends JpaRepository<Inventory, Long> {
+    
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Inventory i WHERE i.id = :id")
+    Optional<Inventory> findAndLockById(@Param("id") Long id);
+}
+
+// Service Layer
+@Service
+public class InventoryService {
+    @Autowired private InventoryRepository repository;
+
+    @Transactional
+    public void decrementStock(Long id, int quantity) {
+        Inventory item = repository.findAndLockById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Item not found"));
+            
+        if (item.getAvailable() < quantity) {
+            throw new InsufficientStockException("Out of stock");
+        }
+        item.setAvailable(item.getAvailable() - quantity);
+        // Save triggers update while lock is held. Released on transaction commit.
+        repository.save(item);
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python SQLAlchemy Pessimistic Lock Example
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
+def decrement_stock(session: Session, product_id: int, quantity: int):
+    # Select with exclusive write lock (SELECT ... FOR UPDATE)
+    stmt = (
+        select(Inventory)
+        .filter_by(id=product_id)
+        .with_for_update()
+    )
+    item = session.execute(stmt).scalar_one_or_none()
+    
+    if not item:
+        raise ValueError("Item not found")
+    if item.available < quantity:
+        raise ValueError("Insufficient stock")
+        
+    item.available -= quantity
+    session.commit()  # Lock released upon transaction commit`} />
+  </CodeTabs>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Guarantees strong consistency. Transactions never process stale data. Simple to reason about because the database manages lock queues.</li>
+    <li><strong>Cons:</strong> Severe scalability bottleneck under high contention. If thousands of requests try to purchase the same product, they are executed strictly sequentially, causing connection pools to block.</li>
+  </ul>
+
+  <h3 id="optimistic-locking">Optimistic Concurrency Control (OCC)</h3>
+  <p>
+    OCC assumes conflicts are rare. It allows multiple transactions to read and write without locks. At commit time, the system checks if the data has changed since it was read.
+  </p>
+  <p>
+    This is implemented using a version number or timestamp column. The SQL write query updates the row ONLY if the version matches the original read version:
+    `UPDATE inventory SET stock = 9, version = 2 WHERE id = 1 AND version = 1`
+  </p>
+
+  {/* Optimistic Locking Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Optimistic Concurrency Control Sequence</div>
+    <div className="sequence-diagram">
+      <div className="sequence-participants">
+        <div className="sequence-participant">Txn A</div>
+        <div className="sequence-participant">Database Row (Version 1)</div>
+        <div className="sequence-participant">Txn B</div>
+      </div>
+      <div className="sequence-steps">
+        <div className="sequence-step">
+          <div className="sequence-label">Read V1</div>
+          <div className="sequence-arrow">
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Read V1</div>
+          <div className="sequence-arrow">
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-divider">Both process in memory</div>
+        <div className="sequence-step">
+          <div className="sequence-label">Txn A Commit</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>
+              UPDATE ... SET version = 2 WHERE version = 1
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-divider">DB Version updates to 2</div>
+        <div className="sequence-step">
+          <div className="sequence-label">Txn B Commit</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#c62828' }}>
+              UPDATE ... SET version = 2 WHERE version = 1
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="50%" y2="4" stroke="#c62828" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Conflict Fail</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#c62828' }}>
+              0 rows affected (Throws exception, Txn B must abort/retry)
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="100%" y2="4" stroke="#c62828" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Spring Data JPA Optimistic Lock example
+@Entity
+public class ProductStock {
+    @Id
+    private Long id;
+    private int quantity;
+    
+    @Version // JPA automatically checks this column during saves
+    private Long version;
+    
+    // getters & setters
+}
+
+// Service Layer handling retries
+@Service
+public class OrderService {
+    @Autowired private ProductStockRepository repository;
+
+    public void purchaseProduct(Long id, int qty) {
+        int maxRetries = 3;
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                ProductStock stock = repository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException());
+                if (stock.getQuantity() < qty) {
+                    throw new OutOfStockException();
+                }
+                stock.setQuantity(stock.getQuantity() - qty);
+                repository.save(stock); // Will fail with ObjectOptimisticLockingFailureException if version changed
+                return; // Success!
+            } catch (ObjectOptimisticLockingFailureException e) {
+                if (attempt == maxRetries - 1) throw e;
+                // Optional: apply exponential backoff wait here before next iteration
+            }
+        }
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# SQLAlchemy Optimistic Concurrency Control (OCC) Example
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import StaleDataError
+
+class Product(Base):
+    __tablename__ = 'products'
+    id = Column(Integer, primary_key=True)
+    stock = Column(Integer)
+    # SQLAlchemy natively supports OCC versioning via version_id_col
+    version = Column(Integer, nullable=False)
+    __mapper_args__ = {
+        "version_id_col": version
+    }
+
+def purchase_product(session: Session, product_id: int, quantity: int):
+    for attempt in range(3):
+        try:
+            product = session.query(Product).filter_by(id=product_id).first()
+            if product.stock < quantity:
+                raise ValueError("Out of stock")
+                
+            product.stock -= quantity
+            session.commit()  # Throws StaleDataError if database row version differs
+            return
+        except StaleDataError:
+            session.rollback()
+            if attempt == 2:
+                raise RuntimeError("Transaction aborted after maximum retries")`} />
+  </CodeTabs>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Non-blocking. Multiple clients can read concurrently without locking connection pools. Highly performant when contention is low.</li>
+    <li><strong>Cons:</strong> Under high contention, the retry rate spikes. The database wastes significant CPU cycles validating, aborting, and rolling back transactions, leading to wasted execution costs and high tail latency.</li>
+  </ul>
+
+  <h3 id="atomic-updates">Database Atomic Updates</h3>
+  <p>
+    Many systems do not need to read, check, and write in separate operations. Instead, they can execute atomic mutations directly on the database engine.
+  </p>
+  <p>
+    `UPDATE products SET stock = stock - 1 WHERE id = 123 AND stock >= 1;`
+  </p>
+  <p>
+    This delegates concurrency safety to the database engine. The database will acquire an exclusive row-level lock on the targeted row during the update, perform the math in memory, and immediately release it.
+  </p>
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Eliminates application-side OCC retry loops. Extremely fast and supported by virtually all databases (Postgres, MySQL, DynamoDB, MongoDB).</li>
+    <li><strong>Cons:</strong> Limited to simple mathematical operations. You cannot execute complex business logic (e.g., checking user tiers or validating discounts) within a single update statement.</li>
+  </ul>
+
+  <h3 id="queue-serialization">Queue-Based Write Serialization</h3>
+  <p>
+    To completely eliminate locks, we convert the multi-threaded parallel write model into a **single-threaded sequential write model**.
+  </p>
+  <p>
+    Clients submit requests to a fast messaging queue (e.g., Redis, Kafka, or RabbitMQ). A single-threaded worker consumes requests from the queue and updates the database sequentially.
+  </p>
+
+  {/* Queue Serialization Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Queue-Based Write Serialization</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '100px' }}>Client A</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '100px' }}>Client B</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '100px' }}>Client C</div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="20%" y1="0" x2="35%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <line x1="80%" y1="0" x2="65%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '280px', padding: '12px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a', fontStyle: 'normal' }}>
+        <strong>Message Queue Partition</strong>
+        <div style={{ fontSize: '0.7rem', marginTop: '4px', opacity: 0.8 }}>Sequential Queue (e.g. Kafka Partition)</div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--server" style={{ maxWidth: '220px' }}>Single-Threaded Worker</div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--server" style={{ maxWidth: '220px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#c8e6c9' }}>Database (No Contention)</div>
+
+    </div>
+  </div>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Spring Boot RabbitMQ Single-Threaded Consumer
+@Component
+public class OrderProcessingWorker {
+
+    @Autowired private InventoryService service;
+
+    // containerFactory configured with concurrentConsumers = 1
+    @RabbitListener(queues = "order-queue", containerFactory = "singleThreadedFactory")
+    public void processOrder(OrderMessage message) {
+        try {
+            // Sequential database write. No locks required because only one consumer runs.
+            service.decrementStock(message.getProductId(), message.getQuantity());
+            
+            // Notify user of success via WebSockets or SSE
+            notifyUser(message.getUserId(), "SUCCESS");
+        } catch (Exception e) {
+            notifyUser(message.getUserId(), "FAILED: " + e.getMessage());
+        }
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python Single Worker Consumer (Celery Task Serialization)
+from celery import Celery
+import redis
+
+app = Celery('tasks', broker='redis://localhost:6379/0')
+
+# Force a single worker thread by setting worker_concurrency=1 on Celery
+# Start via: celery -A tasks worker --concurrency=1
+
+@app.task
+def process_purchase_sequential(user_id: str, product_id: int, qty: int):
+    # Establish connection and update database
+    # Safe from contention because concurrency limit is 1
+    db = get_db_connection()
+    try:
+        db.execute("UPDATE products SET stock = stock - %s WHERE id = %s", (qty, product_id))
+        db.commit()
+    finally:
+        db.close()`} />
+  </CodeTabs>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Zero write locks or OCC conflicts. Highly scalable. Protects database from traffic spikes by acting as a buffer.</li>
+    <li><strong>Cons:</strong> **Asynchronous complexity**. The user doesn't get an immediate confirmation. The API gateway returns a `202 Accepted` status code, and the client must poll a status endpoint or wait for a WebSocket notification to confirm fulfillment.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="partitioned-counters">Partitioned & Distributed Counters</h2>
+  <p>
+    When scaling distributed systems, sometimes the write contention is on a **counter** (e.g., counting video views or post likes). If millions of users click "like" on a viral video, they all hit a single database row, creating a massive write bottleneck.
+  </p>
+  <p>
+    To resolve this, we use a **Partitioned Counter**. Instead of storing the total view count in a single row, we divide the count across $N$ sub-counters (slots) in a separate table.
+  </p>
+
+  {/* Partitioned Counter Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Partitioned Counter Architecture</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', width: '100%', flexWrap: 'wrap' }}>
+        <div style={{ background: '#f5f5f5', border: '1px solid #ccc', padding: '12px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '280px' }}>
+          <strong>Writes (Distributed Modulo)</strong>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'center' }}>
+            <span className="fetch-arrow-item" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>Slot 0</span>
+            <span className="fetch-arrow-item" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>Slot 1</span>
+            <span className="fetch-arrow-item" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>Slot 2</span>
+            <span className="fetch-arrow-item" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>Slot 3</span>
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            User ID Hash % N routes to a specific slot
+          </div>
+        </div>
+
+        <div style={{ background: '#e3f2fd', border: '1px solid #90caf9', padding: '12px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '220px' }}>
+          <strong>Read Query (Aggregator)</strong>
+          <div style={{ fontSize: '0.8rem', color: '#1565c0', fontWeight: 'bold', marginTop: '6px' }}>
+            SELECT SUM(count) FROM slots WHERE entity_id = X
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p>
+    <strong>How it works:</strong>
+  </p>
+  <ul>
+    <li><strong>Write Path:</strong> When a user likes a post, the app hashes the user's ID modulo $N$ (e.g., $N=10$). It then increments only that specific slot:
+    `UPDATE post_likes SET count = count + 1 WHERE post_id = 123 AND slot = 4;`</li>
+    <li><strong>Read Path:</strong> To display the total count, query all slots and sum them:
+    `SELECT SUM(count) FROM post_likes WHERE post_id = 123;`</li>
+  </ul>
+  <p>
+    This spreads the write pressure across 10 distinct records instead of 1, effectively scaling write throughput by a factor of $10$.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="problem-breakdowns">Problem Breakdowns (Contention in Practice)</h2>
+  <p>
+    Let's analyze how major system design problems handle high write contention.
+  </p>
+
+  <h3>Ticketmaster / Flight Booking (Seat Allocation)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Thousands of users locking the exact same seat concurrently in the final seconds of ticket releases.</li>
+    <li><strong>Design Selection:</strong> **Pessimistic Locking with Reservation Timeouts**. Use database row-level locking (`SELECT ... FOR UPDATE`) to temporarily reserve the seat for 10 minutes. If payment completes, the lock is committed. If the timeout expires, a cron job releases the reservation. Pessimistic locking is chosen here because consistency is critical: selling the same seat twice is a severe business failure.</li>
+  </ul>
+
+  <h3>Flash Sale / E-Commerce (Stock Ingestion)</h3>
+  <ul>
+    <li><strong>Problem:</strong> 100 available iPhones are targeted by 100,000 requests per second.</li>
+    <li><strong>Design Selection:</strong> **Redis Reservation + Asynchronous Queueing**. Do not hit the relational database. Load the stock into an in-memory Redis cluster (`stock = 100`). Use a **Redis Lua Script** (single-threaded execution) to check and decrement stock:
+    `redis.call("DECRBY", KEYS[1], ARGV[1])`. If the result is &ge; 0, place the order on a message queue and return `202 Accepted`. A single-threaded worker reads the queue and processes orders sequentially.</li>
+  </ul>
+
+  <h3>Online Auction (Bidding Engine)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Bidders competing for a rare item. Bids must be strictly higher than the current bid, requiring sub-second updates and strong serialization.</li>
+    <li><strong>Design Selection:</strong> **Distributed Lock (Redis Redlock / ZooKeeper Fencing Tokens)**. Protect the auction balance using a distributed lock tied to the auction ID. Before processing a bid, a thread acquires the lock, checks if the bid exceeds the current leader in Redis/DB, writes the new high bid, and releases the lock.</li>
+  </ul>
+
+  <h3>Social Post Likes (Viral Counters)</h3>
+  <ul>
+    <li><strong>Problem:</strong> A post by a celebrity gets millions of likes in minutes.</li>
+    <li><strong>Design Selection:</strong> **In-Memory Buffering (Write-back Caching) + Partitioned Counters**. The write path does not modify the database immediately. Instead, local application servers buffer count events in memory or aggregate them in Redis. Every 5 seconds, the accumulated writes are flushed to a database configured with **Partitioned Counters** to distribute the SQL update pressure.</li>
+  </ul>
+
+  <h3>Distributed Wallet / Ledger (Transfers)</h3>
+  <ul>
+    <li><strong>Problem:</strong> High-frequency financial transfers modifying a single user's wallet balance.</li>
+    <li><strong>Design Selection:</strong> **Double-Entry Bookkeeping (Append-Only Ledger)**. Avoid running `UPDATE balance = balance - X`. Instead, treat writes as append-only log transactions (`INSERT INTO transactions ...`). Calculating the balance is a read aggregation. If an active balance constraint is needed, combine with Optimistic Concurrency Control (OCC) or memory reservations in Redis.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Concurrency Control Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>Locks Held</th>
+          <th>Throughput</th>
+          <th>Read Blocked?</th>
+          <th>Complexity</th>
+          <th>Ideal Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Pessimistic</td>
+          <td>Yes (DB Row)</td>
+          <td>Low</td>
+          <td>Yes (under FOR UPDATE)</td>
+          <td>Low</td>
+          <td>Seat booking, inventory decrement, billing</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Optimistic (OCC)</td>
+          <td>No</td>
+          <td>High (low conflict)</td>
+          <td>No</td>
+          <td>Medium</td>
+          <td>Collaborative wikis, profile settings, low-conflict updates</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Atomic Updates</td>
+          <td>Implicit (brief)</td>
+          <td>Medium-High</td>
+          <td>No</td>
+          <td>Low</td>
+          <td>Counters, simple increments/decrements</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Queue-Based</td>
+          <td>No</td>
+          <td>Extreme</td>
+          <td>No</td>
+          <td>High (Async)</td>
+          <td>Flash sales, processing massive asynchronous jobs</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Partitioned Counter</td>
+          <td>No (distributed)</td>
+          <td>Very High</td>
+          <td>No</td>
+          <td>Medium</td>
+          <td>Viral view/like counters</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Handling contention is about moving along the spectrum of strict consistency and performance. In interviews, begin by defining the rate of write operations on a single resource, then justify your locking or serialization selection.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Pessimistic locking is for high-stakes consistency:</strong> If duplicate updates cause critical financial or booking failures, use `SELECT ... FOR UPDATE` despite the latency cost.</li>
+      <li><strong>Atomic DB updates are the fastest win:</strong> When you only need relative math on a row, use `UPDATE SET x = x + 1` directly to let the database handle the row lock.</li>
+      <li><strong>Use distributed locks with lease timeouts:</strong> Always mention fencing tokens or short TTL leases when using Redis distributed locks to prevent deadlocks on node crashes.</li>
+      <li><strong>Scale counters with slots:</strong> If a single counter is the bottleneck, scale write throughput by distributing updates across $N$ sub-counters (Partitioned Counters).</li>
+    </ul>
+  </div>
+</section>
