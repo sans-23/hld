@@ -20,7 +20,7 @@ export const SECTIONS = [
     title: 'Patterns',
     defaultExpanded: false,
     items: [
-      { id: 'real-time', label: 'Real-time Updates', href: '/real-time', status: 'locked' },
+      { id: 'real-time', label: 'Real-time Updates', href: '/real-time', status: 'default' },
       { id: 'contention', label: 'Dealing with Contention', href: '/contention', status: 'locked' },
       { id: 'multi-step', label: 'Multi-step Processes', href: '/multi-step', status: 'locked' },
       { id: 'scaling-reads', label: 'Scaling Reads', href: '/scaling-reads', status: 'locked' },

@@ -23,6 +23,7 @@ import PostgreSQL from '../content/articles/postgresql.mdx';
 import Flink from '../content/articles/flink.mdx';
 import ZooKeeper from '../content/articles/zookeeper.mdx';
 import TimeSeriesDatabases from '../content/articles/time-series.mdx';
+import RealTime from '../content/articles/real-time.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -52,6 +53,7 @@ export default function MainContent() {
     if (articleId === 'flink') return <Flink />;
     if (articleId === 'zookeeper') return <ZooKeeper />;
     if (articleId === 'time-series') return <TimeSeriesDatabases />;
+    if (articleId === 'real-time') return <RealTime />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;
