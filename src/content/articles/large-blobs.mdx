@@ -1,0 +1,652 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="#core-concepts">Patterns</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Handling Large Blobs</span>
+  </div>
+  <h1>Handling Large Blobs</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Learn how to design scalable storage architectures for high-volume, large-file ingestion without choking your databases.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Patterns & Large Files
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  Modern system design questions frequently demand handling massive binary files: video hosting (YouTube/Netflix), cloud storage (Dropbox/Google Drive), photo uploads (Instagram), or document repositories. 
+</p>
+<p>
+  Storing high-volume file data directly inside transactional databases is a notorious anti-pattern. This guide covers how to separate your application's data plane from its control plane, prevent database bloating, and scale file ingestion using pre-signed URLs, multipart chunking, and edge distribution networks.
+</p>
+
+<section className="content-section">
+  <h2 id="core-problem">The Core Problem: Database Bloat</h2>
+  <p>
+    While relational databases support large data containers (such as PostgreSQL's `BYTEA` or MySQL's `LONGBLOB`), using them under high traffic creates critical system choke points.
+  </p>
+  <p>
+    Relational database engines store records on disk inside fixed-size blocks (typically **8KB to 16KB pages**). When a column value exceeds the page size limit, the database is forced to store the value out-of-line in separate **overflow pages** (e.g. TOAST tables in PostgreSQL or off-page storage in InnoDB).
+  </p>
+  <p>
+    This off-page serialization introduces massive performance penalties:
+  </p>
+  <ul>
+    <li><strong>Buffer Pool Pollution:</strong> Database memory caches (the buffer pool) load pages to satisfy queries. Fetching rows with large embedded blobs drags massive byte arrays into memory, evicting key, frequently-read metadata indexes. This reduces the cache hit ratio of the entire database.</li>
+    <li><strong>CPU & Network Exhaustion:</strong> Parsing, serializing, and pushing megabytes of base64/binary payloads through database connections spikes CPU cycles and saturates backend network interfaces.</li>
+    <li><strong>Operational Fragility:</strong> Database backups, snapshot replication, and table maintenance (like `VACUUM`) slow down exponentially as database size scales into terabytes of binary blobs.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="storage-architectures">Storage Architectures Compared</h2>
+  <p>
+    When scaling large files, you must choose where the binary data actually lives:
+  </p>
+
+  <h3>1. In-Database BLOBs</h3>
+  <p>
+    The binary payload is saved in the database row alongside basic metadata. 
+    <br/>
+    <em>Verdict:</em> Simple to manage with transactional consistency, but causes severe write amplification and scales horribly. Use only for tiny assets (&lt; 100KB) that must change atomically with database state.
+  </p>
+
+  <h3>2. Local Application Filesystem</h3>
+  <p>
+    Files are written directly to local folders on the application server (e.g., `/var/www/uploads/`), and the filesystem path is saved in the database.
+    <br/>
+    <em>Verdict:</em> Highly performant read/write operations on SSDs, but breaks when scaling horizontally. Since application servers are stateless, subsequent requests routed to other servers will fail to find the file unless you use a network-attached filesystem (NFS/EFS), which introduces a single point of failure and severe locking lag.
+  </p>
+
+  <h3>3. Cloud Object Storage (S3 / GCS)</h3>
+  <p>
+    Files are stored as unique key-value objects in a flat namespace managed by a specialized cloud storage provider. The application database only saves the unique key/URI.
+    <br/>
+    <em>Verdict:</em> The industry-standard architecture. Durable (99.999999999% durability), highly available, cheap, and supports key protocols like CDN-caching, pre-signed authorization, and lifecycle rules.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="presigned-urls">Pre-signed URLs: Protecting Server Bandwidth</h2>
+  <p>
+    In a naive upload architecture, clients send the file payload to the application server, which proxies it to Object Storage. This is a severe bottleneck: the app server blocks a connection thread, consumes RAM, and wastes network I/O cycles acting as a middleman.
+  </p>
+  <p>
+    To protect app server bandwidth, systems use **Pre-signed URLs**. This pattern delegates the upload or download directly to Object Storage, keeping the application server solely on the control plane.
+  </p>
+
+  <div className="diagram-container">
+    <div className="diagram-title">Pre-signed URL Direct Upload Flow</div>
+    <div className="sequence-diagram">
+      <div className="sequence-participants">
+        <div className="sequence-participant">Client (Browser)</div>
+        <div className="sequence-participant">App Server</div>
+        <div className="sequence-participant">Object Storage (S3)</div>
+      </div>
+      <div className="sequence-steps">
+        
+        {/* Step 1 */}
+        <div className="sequence-step">
+          <div className="sequence-label">1. Request Upload URL</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>POST /uploads/initiate (fileSize, type)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 2 */}
+        <div className="sequence-step">
+          <div className="sequence-label">2. Authenticate & Sign</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#15448e', fontStyle: 'italic', textAlign: 'center' }}>
+              Verify user permissions & generate signed PUT URL internally
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="50%" y2="4" stroke="#15448e" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 3 */}
+        <div className="sequence-step">
+          <div className="sequence-label">3. Return Signed URL</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>HTTP 200 (Signed S3 upload URL)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 4 */}
+        <div className="sequence-step" style={{ background: 'rgba(124, 58, 237, 0.03)' }}>
+          <div className="sequence-label">4. Direct Binary Upload</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#7c3aed', fontWeight: 'bold' }}>PUT s3.amazonaws.com/bucket/key?... (Binary Payload)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 5 */}
+        <div className="sequence-step">
+          <div className="sequence-label">5. Acknowledge Upload</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>HTTP 200 OK (ETag, Key)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="3,3" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 6 */}
+        <div className="sequence-step">
+          <div className="sequence-label">6. Update Metadata</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>POST /uploads/complete (key, s3ETag) -> Save DB</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <p>
+    <strong>Key steps in pre-signed URL workflow:</strong>
+  </p>
+  <ol>
+    <li>The client initiates the upload by providing target metadata (e.g. file name, content length, file type) to the App Server.</li>
+    <li>The App Server validates permissions and requests a pre-signed URL using IAM credentials from S3.</li>
+    <li>The App Server returns this URL, which contains a security signature and short expiration time (e.g., 15 minutes).</li>
+    <li>The client uploads the raw binary file directly to S3 via HTTP `PUT`.</li>
+    <li>Once S3 confirms receipt with an `ETag`, the client notifies the App Server to write the asset record to the relational database.</li>
+  </ol>
+</section>
+
+<section className="content-section">
+  <h2 id="multipart-uploads">Multipart Uploads: Handling Large Files</h2>
+  <p>
+    Uploading single files larger than 100MB over a standard HTTP connection is highly fragile. Any network packet drop or socket timeout aborts the entire upload, forcing the client to start over.
+  </p>
+  <p>
+    **Multipart Upload** breaks a large file into $N$ distinct binary chunks (typically sized 5MB to 10MB) and uploads them independently.
+  </p>
+
+  <div className="diagram-container">
+    <div className="diagram-title">Multipart Upload Flow</div>
+    <div className="sequence-diagram">
+      <div className="sequence-participants">
+        <div className="sequence-participant">Client (Browser)</div>
+        <div className="sequence-participant">App Server</div>
+        <div className="sequence-participant">Object Storage (S3)</div>
+      </div>
+      <div className="sequence-steps">
+
+        {/* Phase 1: Initiation */}
+        <div className="sequence-divider">Phase 1: Initiation</div>
+        <div className="sequence-step">
+          <div className="sequence-label">Initiate Multipart</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>POST /multipart/initiate</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Create S3 Session</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>CreateMultipartUpload API</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Session ID Returned</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>UploadId returned</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="50%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Return Session ID</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>Return UploadId & Chunk Count</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Phase 2: Presigned Chunks */}
+        <div className="sequence-divider">Phase 2: Generate Part URLs</div>
+        <div className="sequence-step">
+          <div className="sequence-label">Request Part URLs</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>POST /multipart/presign-parts (UploadId, partNumbers)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Return Signed Parts</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>List of Pre-signed Part URLs</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Phase 3: Parallel Uploads */}
+        <div className="sequence-divider">Phase 3: Parallel Uploads</div>
+        <div className="sequence-step" style={{ background: 'rgba(124, 58, 237, 0.03)' }}>
+          <div className="sequence-label">Upload Part 1</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#7c3aed' }}>PUT s3.amazonaws.com/.../key?partNumber=1&uploadId=Id</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step" style={{ background: 'rgba(124, 58, 237, 0.03)' }}>
+          <div className="sequence-label">Upload Part N</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#7c3aed' }}>PUT s3.amazonaws.com/.../key?partNumber=N&uploadId=Id</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Phase 4: Completion */}
+        <div className="sequence-divider">Phase 4: Complete & Assemble</div>
+        <div className="sequence-step">
+          <div className="sequence-label">Complete Upload</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>POST /multipart/complete (UploadId, [Part ETags])</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Assemble Chunks</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>CompleteMultipartUpload (ETags)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Confirm Success</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>HTTP 200 Success Response</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="3,3" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <p>
+    <strong>Advantages of Multipart Uploads:</strong>
+  </p>
+  <ul>
+    <li><strong>Fault Tolerance:</strong> If uploading part 7 fails due to a network flicker, the client only re-transmits part 7.</li>
+    <li><strong>Parallel Uploads:</strong> The client can split files and stream chunks concurrently across multiple parallel TCP connections, accelerating upload times.</li>
+    <li><strong>Pausing & Resuming:</strong> Upload sessions can remain active for hours/days. Chunks already processed are persisted, allowing users to pause and resume large files.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="cdn-caching">CDN Caching & Edge Optimization</h2>
+  <p>
+    Once blobs are safely written to object storage, scaling reads is handled using a **Content Delivery Network (CDN)** like CloudFront or Cloudflare.
+  </p>
+  <p>
+    When serving authenticated or premium media, you cannot expose static public S3 links. Instead, use these patterns:
+  </p>
+  <ul>
+    <li><strong>Pre-signed URLs (CDN-Level):</strong> Similar to S3 pre-signed URLs, but signed using the CDN's private keys. The request hits edge nodes. If the signature is valid and the expiration is active, the CDN serves the cached file without hitting S3.</li>
+    <li><strong>Pre-signed Cookies:</strong> Instead of signing individual file URLs (which breaks HLS/DASH video playlist files containing hundreds of individual segments), write a cookie with wildcard access parameters (e.g. `*.mp4` or `/movies/*`). The browser attaches this cookie to all subsequent media segment reads automatically.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-snippets">S3 Direct Upload Implementation</h2>
+  <p>
+    Below are concrete implementations illustrating how to initiate and sign S3 uploads.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Java AWS SDK v2 Pre-signed Upload & Multipart Configuration
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.*;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+public class S3StorageManager {
+
+    private final String bucketName = "production-app-blobs";
+    private final Region region = Region.US_EAST_1;
+    
+    // 1. Generate standard pre-signed PUT Upload URL
+    public String generateUploadPresignedUrl(String objectKey, String contentType) {
+        try (S3Presigner presigner = S3Presigner.builder()
+                .region(region)
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .build()) {
+            
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .contentType(contentType)
+                    .build();
+
+            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(15))
+                    .putObjectRequest(putRequest)
+                    .build();
+
+            PresignedPutObjectRequest presigned = presigner.presignPutObject(presignRequest);
+            return presigned.url().toString(); // Direct S3 HTTP PUT endpoint
+        }
+    }
+
+    // 2. Initiate Multipart Upload Session
+    public MultipartSession initiateMultipart(String objectKey) {
+        try (S3Client s3 = S3Client.builder().region(region).build()) {
+            CreateMultipartUploadRequest request = CreateMultipartUploadRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .build();
+
+            CreateMultipartUploadResponse response = s3.createMultipartUpload(request);
+            return new MultipartSession(response.uploadId(), objectKey);
+        }
+    }
+
+    // 3. Generate Pre-signed URL for a single part upload
+    public String getPartPresignedUrl(String objectKey, String uploadId, int partNumber) {
+        try (S3Presigner presigner = S3Presigner.builder().region(region).build()) {
+            UploadPartRequest partRequest = UploadPartRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .uploadId(uploadId)
+                    .partNumber(partNumber)
+                    .build();
+
+            UploadPartPresignRequest presignPartRequest = UploadPartPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(20))
+                    .uploadPartRequest(partRequest)
+                    .build();
+
+            PresignedUploadPartRequest presigned = presigner.presignUploadPart(presignPartRequest);
+            return presigned.url().toString();
+        }
+    }
+    
+    public record MultipartSession(String uploadId, String key) {}
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python Boto3 Pre-signed Uploads & Multipart Assembly
+import boto3
+from botocore.exceptions import ClientError
+
+class S3StorageManager:
+    def __init__(self):
+        self.bucket_name = "production-app-blobs"
+        self.s3_client = boto3.client('s3', region_name='us-east-1')
+
+    # 1. Generate Pre-signed PUT Upload URL
+    def generate_upload_presigned_url(self, object_key: str, content_type: str, expires_in: int = 900) -> str:
+        try:
+            url = self.s3_client.generate_presigned_url(
+                ClientMethod='put_object',
+                Params={
+                    'Bucket': self.bucket_name,
+                    'Key': object_key,
+                    'ContentType': content_type
+                },
+                ExpiresIn=expires_in
+            )
+            return url  # Client can PUT directly to this url
+        except ClientError as e:
+            raise RuntimeError(f"Presigning failed: {e}")
+
+    # 2. Initiate Multipart Upload Session
+    def initiate_multipart_upload(self, object_key: str) -> dict:
+        response = self.s3_client.create_multipart_upload(
+            Bucket=self.bucket_name,
+            Key=object_key
+        )
+        return {
+            'upload_id': response['UploadId'],
+            'key': object_key
+        }
+
+    # 3. Generate Pre-signed URL for uploading a specific part
+    def generate_part_presigned_url(self, object_key: str, upload_id: str, part_number: int, expires_in: int = 1200) -> str:
+        return self.s3_client.generate_presigned_url(
+            ClientMethod='upload_part',
+            Params={
+                'Bucket': self.bucket_name,
+                'Key': object_key,
+                'UploadId': upload_id,
+                'PartNumber': part_number
+            },
+            ExpiresIn=expires_in
+        )
+
+    # 4. Finalize Multipart Upload
+    def complete_multipart_upload(self, object_key: str, upload_id: str, parts: list) -> dict:
+        # parts is a list of dicts: [{'PartNumber': 1, 'ETag': '...'}, {'PartNumber': 2, 'ETag': '...'}]
+        response = self.s3_client.complete_multipart_upload(
+            Bucket=self.bucket_name,
+            Key=object_key,
+            UploadId=upload_id,
+            MultipartUpload={'Parts': parts}
+        )
+        return response`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="problem-breakdowns">Problem Breakdowns (Large Blobs in Practice)</h2>
+  <p>
+    Let's analyze how major applications design their ingestion, storage, and retrieval layers around large assets.
+  </p>
+
+  <h3>Dropbox / Google Drive (File Syncing)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Syncing multi-gigabyte client files reliably while avoiding duplicating duplicate storage chunks.</li>
+    <li><strong>Design Selection:</strong> **Content-Addressing Chunking & Global Deduplication**. Files are parsed client-side and split into fixed-size block chunks (e.g. 4MB). The client hashes each chunk (SHA-256). Before uploading, the client checks the hashes against the app metadata database. If a chunk already exists (uploaded by another user), the server skips the upload, saving bandwidth and storage. Uploads are coordinated chunk-by-chunk, enabling robust pause/resume functionality.</li>
+  </ul>
+
+  <h3>YouTube / Netflix (Video Ingestion & Playback)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Ingesting raw 4K videos, encoding them for different bandwidth settings, and streaming them globally with zero buffering.</li>
+    <li><strong>Design Selection:</strong> **Asynchronous Transcoding Pipelines + CDN segmenting**. Raw videos upload via multipart direct-to-S3 pre-signed requests. S3 triggers an asynchronous job (via EventBridge / AWS SQS) that starts a Fleet of worker nodes. These workers transcode the video into multiple resolutions (360p, 720p, 1080p, 4k) and chunk them into tiny 2-second segments (HLS/DASH formats). These segments are cached globally at CDN edge endpoints.</li>
+  </ul>
+
+  <h3>Instagram / Social Media (Image Feeds)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Users uploading high-resolution camera images. Ingesting these files directly creates high latency and uses high mobile bandwidth.</li>
+    <li><strong>Design Selection:</strong> **Client-Side Compression + Multi-Variant Asynchronous Ingestion**. The client application compresses and resizes the image to target dimensions (e.g. 1080px width) *before* triggering the upload. The client uploads the optimized image directly to Object Storage via a pre-signed URL. S3 triggers serverless functions (like AWS Lambda) to generate various resolution variants (thumbnails, compressed versions) and updates the feeds database.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Blob Storage Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Storage Type</th>
+          <th>Write Speed</th>
+          <th>Operational Complexity</th>
+          <th>Horizontal Scalability</th>
+          <th>Ideal Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">In-Database (BLOB/BYTEA)</td>
+          <td>Low</td>
+          <td>Low (Single System)</td>
+          <td>Poor (Bottlenecks database CPU/Disk)</td>
+          <td>User avatars &lt; 100KB, cryptographic keys</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Local Filesystem</td>
+          <td>Very High</td>
+          <td>Medium (Requires shared mount/EFS)</td>
+          <td>Poor (Prone to mount locks & lag)</td>
+          <td>Single-server apps, temporary scratch scripts</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Object Storage (S3 / GCS)</td>
+          <td>High (Direct)</td>
+          <td>Low (Managed Service)</td>
+          <td>Unlimited (Elastic scaling)</td>
+          <td>Videos, high-volume photos, backups, documents</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    When handling large binary files, keep your primary application database clean. Offload file transfers to dedicated object storage services, generate pre-signed access endpoints, and use edge distribution networks to cache reads.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Protect your DB page cache:</strong> Explicitly mention "Buffer Pool Pollution" to justify moving binary blobs out of relational database tables.</li>
+      <li><strong>Bypass your servers:</strong> Use pre-signed URLs to direct client traffic directly to S3, reducing your app server's network and CPU overhead.</li>
+      <li><strong>Chunk massive files:</strong> Recommend Multipart Uploads for files larger than 100MB to enable parallel upload streams and network resume capabilities.</li>
+      <li><strong>CDN cache with wildcards:</strong> For video streaming (HLS/DASH), recommend CDN-level pre-signed cookies instead of pre-signed URLs to authorize access to segment streams.</li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,523 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="#core-concepts">Patterns</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Scaling Writes</span>
+  </div>
+  <h1>Scaling Writes</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Learn how to design database write layers that handle high-throughput event ingestion and traffic spikes.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Patterns & Data Scaling
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<div className="video-walkthrough-banner">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+  <div>
+    <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+    <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+  </div>
+</div>
+
+<p>
+  Unlike reads—which can be easily scaled using read replicas and content delivery networks (CDNs)—scaling write traffic is significantly more difficult. In relational databases (RDBMS), writes are bound to a single primary instance to guarantee ACID properties, making it a critical bottleneck.
+</p>
+<p>
+  This guide covers how to scale write capacity by optimizing database storage engines (LSM vs B-Trees), buffering writes in application layers, using message queues to smooth out traffic spikes, and partitioning database nodes horizontally.
+</p>
+
+<section className="content-section">
+  <h2 id="core-problem">The Core Problem</h2>
+  <p>
+    A standard database update requires modifying index pages on disk. In B-Tree indexes (the default for Postgres, MySQL, Oracle), these modifications translate to **random disk I/O seeks**, which are extremely expensive.
+  </p>
+  <p>
+    Under high write throughput, databases crash due to:
+  </p>
+  <ul>
+    <li><strong>Disk write exhaustion:</strong> Disk queues fill up as write heads jump across sector ranges.</li>
+    <li><strong>Lock Contention:</strong> Transactions wait to acquire write locks on shared rows and index nodes.</li>
+    <li><strong>Transaction log saturation:</strong> The Write-Ahead Log (WAL) disk partition is choked by transaction serialization tasks.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="lsm-trees">LSM Trees (NoSQL)</h2>
+  <p>
+    To eliminate random disk I/O, write-optimized databases (e.g. Cassandra, RocksDB, Elasticsearch) replace B-Trees with **Log-Structured Merge (LSM) Trees**.
+  </p>
+  
+  <div className="diagram-container">
+    <div className="diagram-title">B-Tree vs. LSM Tree Write Path</div>
+    <div className="diagram-row">
+      
+      {/* B-Tree Column */}
+      <div className="diagram-column" style={{ borderRight: '1px dashed var(--border-color)', paddingRight: '24px' }}>
+        <div className="diagram-label" style={{ color: '#c62828' }}>B-Tree (Random writes)</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>User Write</div>
+          <svg width="24" height="20" style={{ overflow: 'visible' }}>
+            <line x1="12" y1="0" x2="12" y2="20" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+          </svg>
+          <div className="diagram-box diagram-box--server" style={{ maxWidth: '160px', background: '#ffebee', color: '#c62828', borderColor: '#ffcdd2' }}>
+            Modify Index Pages
+            <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Random Disk Seeks</div>
+          </div>
+        </div>
+      </div>
+
+      {/* LSM Column */}
+      <div className="diagram-column" style={{ paddingLeft: '24px' }}>
+        <div className="diagram-label" style={{ color: '#2e7d32' }}>LSM Tree (Sequential writes)</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          
+          <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>User Write</div>
+
+          <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+            <line x1="50%" y1="0" x2="25%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            <line x1="50%" y1="0" x2="75%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+          </svg>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', width: '100%' }}>
+            <div className="diagram-box diagram-box--server" style={{ maxWidth: '110px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>
+              WAL
+              <div style={{ fontSize: '0.6rem', opacity: 0.8 }}>Append-only Disk</div>
+            </div>
+            <div className="diagram-box diagram-box--server" style={{ maxWidth: '110px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>
+              MemTable
+              <div style={{ fontSize: '0.6rem', opacity: 0.8 }}>Memory Buffer</div>
+            </div>
+          </div>
+
+          <svg width="24" height="20" style={{ overflow: 'visible' }}>
+            <line x1="12" y1="0" x2="12" y2="20" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" strokeDasharray="3,3" />
+          </svg>
+
+          <div className="diagram-box diagram-box--connection" style={{ maxWidth: '160px', color: '#7c3aed', fontStyle: 'normal' }}>
+            SSTable Files
+            <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Async Flush to Disk</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p>
+    <strong>How LSM Trees work:</strong>
+  </p>
+  <ol>
+    <li><strong>Commit Log (WAL):</strong> Incoming writes are logged sequentially to an append-only file on disk. This is extremely fast because disk heads do not jump.</li>
+    <li><strong>MemTable:</strong> The write is immediately stored in memory in a sorted structure (e.g. a skip list). The write operation is acknowledged as complete.</li>
+    <li><strong>SSTables (Sorted String Tables):</strong> Once the MemTable fills up, it is flushed to disk sequentially as an SSTable file.</li>
+    <li><strong>Compaction:</strong> Background threads periodically merge smaller SSTables into larger ones, cleaning up duplicate edits and deleted entries.</li>
+  </ol>
+  
+  <Callout type="tip">
+    <p>
+      For systems requiring high-throughput event logging, telemetry, or metric monitoring, always select an LSM-based database like Cassandra or InfluxDB. Do not use relational databases with B-Tree indexes unless write volume is low.
+    </p>
+  </Callout>
+</section>
+
+<section className="content-section">
+  <h2 id="batching-writes">Batching & Buffering Writes</h2>
+  <p>
+    Every SQL query incurs network and parsing overhead. Writing 1,000 rows individually requires 1,000 round-trips. Batching combines multiple inserts into a single query block, slashing connection latency.
+  </p>
+
+  {/* Write Batch Buffer Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Asynchronous Write Batching</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', width: '100%', flexWrap: 'wrap' }}>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '100px' }}>Write 1</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '100px' }}>Write 2</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '100px' }}>Write N</div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="20%" y1="0" x2="35%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <line x1="80%" y1="0" x2="65%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '280px', padding: '12px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a', fontStyle: 'normal' }}>
+        <strong>Memory Batch Buffer</strong>
+        <div style={{ fontSize: '0.65rem', marginTop: '2px', opacity: 0.8 }}>Collects N records / wait T seconds</div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--server" style={{ maxWidth: '240px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#c8e6c9' }}>
+        Database Batch insert
+        <div style={{ fontSize: '0.6rem', opacity: 0.8 }}>INSERT INTO t VALUES (1), (2)...</div>
+      </div>
+
+    </div>
+  </div>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Spring Boot JdbcTemplate Batch Update Example
+@Repository
+public class MetricBatchRepository {
+
+    @Autowired private JdbcTemplate jdbcTemplate;
+
+    public void batchInsertMetrics(List<Metric> metrics) {
+        String sql = "INSERT INTO system_metrics (timestamp, metric_name, value) VALUES (?, ?, ?)";
+        
+        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Metric metric = metrics.get(i);
+                ps.setLong(1, metric.getTimestamp());
+                ps.setString(2, metric.getName());
+                ps.setDouble(3, metric.getValue());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return metrics.size();
+            }
+        });
+    }
+}
+
+// Background memory buffer
+@Service
+public class MetricBufferService {
+    @Autowired private MetricBatchRepository repository;
+    private final List<Metric> buffer = Collections.synchronizedList(new ArrayList<>());
+    
+    public void addMetric(Metric m) {
+        buffer.add(m);
+        if (buffer.size() >= 1000) {
+            flush();
+        }
+    }
+    
+    @Scheduled(fixedRate = 5000) // Flush every 5s if size not met
+    public synchronized void flush() {
+        if (!buffer.isEmpty()) {
+            List<Metric> batch = new ArrayList<>(buffer);
+            buffer.clear();
+            repository.batchInsertMetrics(batch);
+        }
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python SQLAlchemy Bulk Insert & Background Buffer
+from sqlalchemy.orm import Session
+from sqlalchemy import insert
+import threading
+import time
+
+class WriteBuffer:
+    def __init__(self, session_maker, batch_size=1000, max_interval=5.0):
+        self.session_maker = session_maker
+        self.batch_size = batch_size
+        self.max_interval = max_interval
+        self.buffer = []
+        self.lock = threading.Lock()
+        self.last_flush = time.time()
+
+    def add_record(self, metric_data: dict):
+        with self.lock:
+            self.buffer.append(metric_data)
+            if len(self.buffer) >= self.batch_size:
+                self._flush()
+
+    def check_timer(self):
+        with self.lock:
+            if self.buffer and (time.time() - self.last_flush) >= self.max_interval:
+                self._flush()
+
+    def _flush(self):
+        if not self.buffer:
+            return
+        session = self.session_maker()
+        try:
+            # Executes a single bulk insert statement
+            session.execute(insert(Metric), self.buffer)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+            self.buffer.clear()
+            self.last_flush = time.time()`} />
+  </CodeTabs>
+
+  <p>
+    <strong>Tradeoffs:</strong>
+  </p>
+  <ul>
+    <li><strong>Pros:</strong> Drastically cuts network roundtrips and database CPU lock parsing costs, scaling write throughput.</li>
+    <li><strong>Cons:</strong> Risk of data loss. If the application server crashes while records are held in memory before a flush, those records are lost forever.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="load-leveling">Queue-Based Load Leveling</h2>
+  <p>
+    Traffic is rarely flat. Marketing push alerts or flash sales create sudden, massive spikes in writes. If database capacity is designed for average load, these spikes will crash the DB.
+  </p>
+  <p>
+    **Load Leveling** uses a message queue (like Kafka) to act as a buffer. Clients publish writes to the queue instantly. Downstream workers pull messages at a flat, stable consumption rate matching the database's safe write limit.
+  </p>
+
+  {/* Load Leveling Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Queue Load Leveling (Buffer)</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ background: '#f5f5f5', border: '1px solid #ccc', padding: '12px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '280px' }}>
+        <strong>Incoming Write Rate (Spiky)</strong>
+        <div style={{ fontSize: '0.72rem', color: '#c62828', fontWeight: 'bold', marginTop: '6px' }}>
+          📈 Peak: 50,000 writes/sec
+        </div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '280px', padding: '12px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a', fontStyle: 'normal' }}>
+        <strong>Kafka Queue Buffer</strong>
+        <div style={{ fontSize: '0.65rem', marginTop: '2px', opacity: 0.8 }}>Stores and levels the write spikes</div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div style={{ background: '#f5f5f5', border: '1px solid #ccc', padding: '12px', borderRadius: '8px', textAlign: 'center', width: '100%', maxWidth: '280px' }}>
+        <strong>Worker Consumption Rate (Flat)</strong>
+        <div style={{ fontSize: '0.72rem', color: '#2e7d32', fontWeight: 'bold', marginTop: '6px' }}>
+          📉 Safe DB Write: 5,000 writes/sec
+        </div>
+      </div>
+
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px' }}>Database</div>
+
+    </div>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="sharding-scaling">Horizontal Sharding</h2>
+  <p>
+    If a single database machine runs out of resources, we must split the data across multiple machines. This is **Horizontal Database Sharding**.
+  </p>
+  <p>
+    Every write request is routed to a specific physical server based on a shard key:
+    `target_db = hash(shard_key) % N`
+  </p>
+  <p>
+    For example, if you shard an order database by `user_id`, all orders for User A go to Shard 1, while User B's orders go to Shard 2.
+  </p>
+  
+  <Callout type="info">
+    <p>
+      Database sharding is a massive architectural shift. For a deep dive into sharding strategies, shard key selection, re-sharding, and maintaining cross-shard constraints, see our dedicated <strong>Sharding</strong> guide.
+    </p>
+  </Callout>
+</section>
+
+<section className="content-section">
+  <h2 id="problem-breakdowns">Problem Breakdowns (Write Scaling in Practice)</h2>
+  <p>
+    Let's analyze how major system design problems apply write-scaling patterns.
+  </p>
+
+  <h3>Metrics Monitoring (Datadog / Prometheus)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Millions of servers pushing CPU and memory metrics every second. Writes are massive, append-only, and time-sequential.</li>
+    <li><strong>Design Selection:</strong> **LSM Time-Series Databases (InfluxDB) + Kafka**. We buffer incoming metrics at the edge using Kafka. Background worker clusters pull metric records, group them by server/metric, and perform bulk writes to an LSM-based time-series database. B-Tree relational databases would collapse immediately under the random index writes.</li>
+  </ul>
+
+  <h3>Uber (Driver GPS Tracking)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Hundreds of thousands of active drivers sending location updates every 4 seconds.</li>
+    <li><strong>Design Selection:</strong> **Write-Back Buffer (Redis) + NoSQL Cassandra**. GPS coordinates are written to a fast, in-memory Redis cluster to update driver location immediately (reads for passenger maps). A background job streams updates from Redis to Cassandra (LSM structure) using batching, ensuring driver location histories are persisted sequentially.</li>
+  </ul>
+
+  <h3>E-Commerce Flash Sale (Order Volume)</h3>
+  <ul>
+    <li><strong>Problem:</strong> A product release triggers 100,000 orders in the first 2 seconds, overloading the order relational database.</li>
+    <li><strong>Design Selection:</strong> **Queue-Based Load Leveling (Kafka)**. The API gateway does not write directly to the database. It validates basic user formats and drops order payloads onto a Kafka queue partition. Workers pull orders from Kafka at a controlled rate (e.g. 2,000 orders/sec) to execute relational writes safely without exhausting connection pools.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Write Scaling Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Write Speed</th>
+          <th>Risk of Data Loss</th>
+          <th>Complexity</th>
+          <th>Ideal Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">LSM Trees (NoSQL)</td>
+          <td>Very High</td>
+          <td>None (WAL is synced)</td>
+          <td>Medium</td>
+          <td>Append-only logs, metrics, dynamic chats</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Batching & Buffering</td>
+          <td>High</td>
+          <td>Medium (crashes lose buffer)</td>
+          <td>Low</td>
+          <td>Bulk data ingestion, logging pipelines</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Queue Load Leveling</td>
+          <td>High</td>
+          <td>None</td>
+          <td>High (Async)</td>
+          <td>Spiky traffic (Flash Sales, booking events)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Horizontal Sharding</td>
+          <td>Unlimited (Horizontal)</td>
+          <td>None</td>
+          <td>Extreme</td>
+          <td>Monolithic DB capacity exhaustion</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Scaling writes requires moving away from traditional random page updates. In interviews, identify write spike patterns, justify your storage choices (B-Tree vs LSM), and protect your databases using asynchronous batching and queue buffers.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Switch to LSM for high write ingestion:</strong> Mention Log-Structured Merge databases (like Cassandra) to bypass B-Tree random disk write limitations.</li>
+      <li><strong>Batch database queries:</strong> Never run SQL updates in tight loops. Group inserts in application memory buffers and flush them via single batch queries.</li>
+      <li><strong>Buffer write spikes using queues:</strong> Introduce Kafka between your application and database to act as a leveler and protect the RDBMS from collapsing.</li>
+      <li><strong>Acknowledge batching risks:</strong> Proactively call out the data loss trade-off when using in-memory buffers to show production-level engineering maturity.</li>
+    </ul>
+  </div>
+</section>

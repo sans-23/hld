@@ -1,0 +1,575 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="#core-concepts">Patterns</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Managing Long Running Tasks</span>
+  </div>
+  <h1>Managing Long Running Tasks</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master the patterns for decoupled background job architectures to execute heavy operations asynchronously without blocking user requests.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      11 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Patterns & Queues
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  Not all operations can or should be completed within the sub-second window of an HTTP request-response cycle. Tasks like rendering PDF reports, syncing third-party data APIs, encoding videos, or distributing bulk email lists are too resource-heavy.
+</p>
+<p>
+  Attempting to run these inline within web request threads results in server thread pool starvation, client timeout errors, and catastrophic service failures. This guide outlines how to design robust, reliable, and scalable background job processing systems.
+</p>
+
+<section className="content-section">
+  <h2 id="core-problem">The Core Problem: Thread Blocking</h2>
+  <p>
+    When a web server receives an HTTP request, it allocates a thread from its worker pool to handle it. If that thread executes a task that takes 30 seconds to complete, that thread is blocked.
+  </p>
+  <p>
+    Executing heavy tasks inside the HTTP request loop results in three primary failures:
+  </p>
+  <ul>
+    <li><strong>Gateway Timeouts (HTTP 504):</strong> Intermediaries (such as load balancers, CDN edges, or reverse proxies like Nginx) enforce maximum request timeouts—typically **30 to 60 seconds**. If the app server does not respond before this limit, the gateway terminates the connection, returning an error to the user even if the background server continues to churn.</li>
+    <li><strong>HTTP Worker Thread Starvation:</strong> Most web servers operate with a finite number of connection threads (e.g. 200). If concurrent users trigger 200 long-running jobs, all threads are blocked. The server can no longer accept any new, fast requests (like serving a static page or checking auth), causing a complete outage.</li>
+    <li><strong>Memory & Resource Exhaustion:</strong> Long-running tasks often manipulate massive arrays in memory (like reading 100,000 DB rows to generate a CSV). Concurrently running multiple copies of these processes can exhaust server RAM, triggering Out-Of-Memory (OOM) operating system crashes.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="architecture-topology">Queue-Based Task Architecture</h2>
+  <p>
+    To solve thread blocking, you must decouple the **Control Plane** (ingesting requests and returning quick status acknowledgments) from the **Data Execution Plane** (executing actual computations).
+  </p>
+  <p>
+    Instead of processing the task synchronously, the web server writes a task record to a **Message Broker / Task Queue** and returns an immediate response of `202 Accepted` along with a unique `jobId`. A pool of isolated worker servers pulls tasks from the queue and executes them asynchronously.
+  </p>
+
+  {/* Topology Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">Queue-Based Task Processing Topology</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
+        
+        {/* Client */}
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '110px' }}>
+          Client
+          <div style={{ fontSize: '0.6rem', opacity: 0.8 }}>HTTP POST</div>
+        </div>
+
+        {/* Arrow */}
+        <svg width="35" height="20" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="10" x2="35" y2="10" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        </svg>
+
+        {/* API Gateway */}
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '130px', background: '#ffebee', color: '#c62828', borderColor: '#ffcdd2' }}>
+          API/Web Node
+          <div style={{ fontSize: '0.55rem', opacity: 0.8 }}>Submit task, return 202</div>
+        </div>
+
+        {/* Arrow */}
+        <svg width="35" height="20" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="10" x2="35" y2="10" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+        </svg>
+
+        {/* Message Queue */}
+        <div className="diagram-box diagram-box--connection" style={{ maxWidth: '140px', color: '#7c3aed', borderColor: '#7c3aed', fontStyle: 'normal' }}>
+          Task Queue
+          <div style={{ fontSize: '0.55rem', opacity: 0.8 }}>Redis / RabbitMQ</div>
+        </div>
+
+        {/* Arrow */}
+        <svg width="35" height="20" style={{ overflow: 'visible' }}>
+          <line x1="0" y1="10" x2="35" y2="10" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+        </svg>
+
+        {/* Workers */}
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '130px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#a5d6a7' }}>
+          Worker Fleet
+          <div style={{ fontSize: '0.55rem', opacity: 0.8 }}>Processes jobs async</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <p>
+    <strong>Core Architectural Components:</strong>
+  </p>
+  <ol>
+    <li><strong>Client:</strong> Triggers the operation and receives a `202 Accepted` response with a `job_id`.</li>
+    <li><strong>API Layer (Producer):</strong> Receives the HTTP payload, creates a status entry in the database (e.g. `status = PENDING`), drops the task message onto the queue, and returns the job metadata.</li>
+    <li><strong>Message Broker:</strong> A durable queueing system (such as Celery broker Redis/RabbitMQ, or AWS SQS) that holds task definitions until consumers pull them.</li>
+    <li><strong>Workers (Consumers):</strong> Stateless, horizontally-scalable server nodes whose sole job is listening to the broker, executing the task, updating the status in the DB (e.g. `COMPLETED` or `FAILED`), and storing outputs.</li>
+  </ol>
+</section>
+
+<section className="content-section">
+  <h2 id="status-tracking">Status Tracking: Polling vs. Server Push</h2>
+  <p>
+    Since the initial HTTP request returns immediately, the client needs a mechanism to track when the task finishes so it can show the result to the user.
+  </p>
+
+  <h3>1. Client Polling (Pull)</h3>
+  <p>
+    The client periodically sends HTTP <code>GET</code> requests to a status endpoint (e.g., <code>/api/jobs/{"{id}"}</code>) checking for status changes.
+  </p>
+  <ul>
+    <li><strong>Short Polling:</strong> The client requests status every $X$ seconds (e.g., 2s). Simple to write, but creates high request overhead on app servers and databases under scale.</li>
+    <li><strong>Long Polling:</strong> The server holds the request open until the task updates or a timeout occurs, reducing request counts but keeping backend connections occupied.</li>
+  </ul>
+
+  <div className="diagram-container">
+    <div className="diagram-title">Decoupled Processing & Short Polling Flow</div>
+    <div className="sequence-diagram">
+      <div className="sequence-participants">
+        <div className="sequence-participant">Client (Browser)</div>
+        <div className="sequence-participant">API Web Server</div>
+        <div className="sequence-participant">Worker/DB</div>
+      </div>
+      <div className="sequence-steps">
+
+        {/* Step 1 */}
+        <div className="sequence-step">
+          <div className="sequence-label">Submit Job</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>POST /jobs/export-data</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 2 */}
+        <div className="sequence-step">
+          <div className="sequence-label">Immediate Response</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>HTTP 202 Accepted (jobId: "abc")</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 3 */}
+        <div className="sequence-step" style={{ background: 'rgba(21, 68, 142, 0.03)' }}>
+          <div className="sequence-label">Enqueue & Start</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#15448e', fontStyle: 'italic', textAlign: 'center' }}>
+              Worker starts task "abc" and writes status="RUNNING" to Database
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="100%" y2="4" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 4 */}
+        <div className="sequence-step">
+          <div className="sequence-label">Poll Status 1</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>GET /jobs/abc</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Response 1</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>HTTP 200 OK (status: "RUNNING")</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 5 */}
+        <div className="sequence-step" style={{ background: 'rgba(46, 125, 50, 0.03)' }}>
+          <div className="sequence-label">Worker Finishes</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#2e7d32', fontStyle: 'italic', textAlign: 'center' }}>
+              Task complete; updates Database with status="COMPLETED", fileUrl="s3://..."
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="100%" y2="4" stroke="#2e7d32" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Step 6 */}
+        <div className="sequence-step">
+          <div className="sequence-label">Poll Status 2</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>GET /jobs/abc</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="50%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
+        </div>
+        <div className="sequence-step">
+          <div className="sequence-label">Response 2</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--text-muted)' }}>HTTP 200 OK (status: "COMPLETED", downloadUrl: "https://...")</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="50%" y1="4" x2="0%" y2="4" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#arrowhead-gray)" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <h3>2. Server Push (WebSockets / Server-Sent Events)</h3>
+  <p>
+    Instead of clients polling, the server pushes completion updates in real-time. When a worker completes a task, it publishes an event (e.g. via Redis Pub/Sub) containing the `jobId` and output. 
+  </p>
+  <p>
+    An active connection handler server (WebSockets/SSE gateway) subscribes to the channel and pushes the message down the persistent TCP socket to the client.
+  </p>
+  <p>
+    <em>Tradeoff:</em> Drastically reduces server request rates and provides instantaneous UI updates, but introduces stateful connection management complexity at the API gateway layer.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="reliability-patterns">Reliability: Retries, DLQs & Idempotency</h2>
+  <p>
+    Decoupled architectures must survive worker crashes, networking glitches, and malformed task inputs. Ensure your system designs incorporate these reliability patterns:
+  </p>
+
+  <h3>1. Retry Policies (Exponential Backoff & Jitter)</h3>
+  <p>
+    If a worker fails to contact a third-party API or database during execution, the task should not fail immediately. Queues should support auto-retry. 
+    To avoid slamming dependency systems, retries should use **Exponential Backoff** (delaying each retry longer than the last, e.g. 2s, 4s, 8s, 16s) combined with **Jitter** (adding a random noise offset, e.g. +/- 1.2s) to prevent coordinated "thundering herd" worker retry storms.
+  </p>
+
+  <h3>2. Dead Letter Queues (DLQs)</h3>
+  <p>
+    If a task contains invalid user variables, it will crash every worker that attempts to execute it. This is a **Poison Pill**. If left in the queue, it will consume worker resources and trigger infinite retry loops, locking up the system.
+  </p>
+  <p>
+    A **Dead Letter Queue (DLQ)** acts as a quarantine. When a task fails more than a configured limit (e.g., 3 or 5 times), the broker pulls it from the active queue and moves it to the DLQ. Admins can inspect the malformed message payloads later without disrupting operational queues.
+  </p>
+
+  <h3>3. Task Idempotency</h3>
+  <p>
+    Most modern messaging brokers guarantee **At-Least-Once Delivery**. Due to network failures (such as a worker executing a task but crashing just before sending an acknowledgment back to the broker), the broker will re-deliver the message, causing it to run twice.
+  </p>
+  <p>
+    To prevent duplicate actions (like charging a credit card twice), workers must execute tasks **idempotently**:
+  </p>
+  <ul>
+    <li>The client includes an <code>idempotency_key</code> (such as a unique UUID) in the request payload.</li>
+    <li>When the worker ingests the task, it checks if a record with the key exists in the database.</li>
+    <li>Using a database constraint or Redis lock, the worker ensures that the operation is only executed if it hasn't run before. If a duplicate arrives, the worker simply skips execution and returns the cached result.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-snippets">Task Queue Implementation</h2>
+  <p>
+    Below are concrete implementations demonstrating how to configure and execute asynchronous tasks.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Spring Boot ThreadPoolTaskExecutor and @Async Configuration
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean(name = "taskExecutor")
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);      // Baseline threads always kept alive
+        executor.setMaxPoolSize(50);       // Max burst thread cap
+        executor.setQueueCapacity(500);    // Queue capacity before spawning core -> max threads
+        executor.setThreadNamePrefix("JobWorker-");
+        executor.initialize();
+        return executor;
+    }
+}
+
+// Service Layer performing async processing
+@Service
+public class DocumentExportService {
+
+    // Runs in a worker thread managed by taskExecutor
+    @Async("taskExecutor")
+    public CompletableFuture<ExportResult> generateCsvReport(String jobId, String queryParameters) {
+        System.out.println("Processing report async on thread: " + Thread.currentThread().getName());
+        
+        try {
+            // Update database status to RUNNING
+            updateJobStatus(jobId, "RUNNING");
+            
+            // Simulating heavy scan & CSV assembly
+            Thread.sleep(8000); 
+            
+            String fileUrl = "s3://exports-bucket/reports/" + jobId + ".csv";
+            updateJobStatusAndUrl(jobId, "COMPLETED", fileUrl);
+            
+            return CompletableFuture.completedFuture(new ExportResult(jobId, true, fileUrl));
+        } catch (Exception e) {
+            updateJobStatus(jobId, "FAILED");
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private void updateJobStatus(String jobId, String status) {
+        // DB update simulation (e.g. jdbcTemplate.update(...))
+    }
+
+    private void updateJobStatusAndUrl(String jobId, String status, String url) {
+        // DB update simulation
+    }
+
+    public record ExportResult(String jobId, boolean success, String fileUrl) {}
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python Celery Task Execution with Auto-Retry & Status Check
+from celery import Celery
+from celery.exceptions import MaxRetriesExceededError
+import time
+
+# Configure Celery with a Redis message broker
+app = Celery('task_manager', broker='redis://localhost:6379/0', backend='redis://localhost:6379/1')
+
+# Define background worker task
+@app.task(bind=True, max_retries=3, default_retry_delay=15)
+def process_video_transcode(self, job_id: str, video_path: str):
+    print(f"Starting transcode for job {job_id} on worker...")
+    try:
+        # Simulate video processing chunks
+        for progress in range(10, 101, 30):
+            time.sleep(2)
+            # Custom state updates can be polled by client
+            self.update_state(state='PROGRESS', meta={'progress': progress})
+            
+        output_url = f"https://cdn.app.com/transcoded/{job_id}.mp4"
+        return {'status': 'COMPLETED', 'output_url': output_url}
+        
+    except Exception as e:
+        print(f"Transient error caught for job {job_id}. Retrying...")
+        try:
+            # Auto-retry with backoff delay
+            raise self.retry(exc=e)
+        except MaxRetriesExceededError:
+            # Task moves to failure state, or customized DLQ logic can trigger
+            return {'status': 'FAILED', 'error': str(e)}
+
+# API Layer controller (Triggering & checking tasks)
+class JobController:
+    @staticmethod
+    def start_job(video_path: str) -> str:
+        job_id = f"job_{int(time.time())}"
+        # Trigger Celery task asynchronously. Returns immediately.
+        result = process_video_transcode.delay(job_id, video_path)
+        return result.id  # Unique Celery Task UUID
+
+    @staticmethod
+    def check_job_status(task_id: str) -> dict:
+        # Get task metadata directly from Redis backend
+        async_result = app.AsyncResult(task_id)
+        
+        if async_result.state == 'PENDING':
+            return {'state': 'PENDING', 'progress': 0}
+        elif async_result.state == 'PROGRESS':
+            return {'state': 'RUNNING', 'progress': async_result.info.get('progress', 0)}
+        elif async_result.state == 'SUCCESS':
+            return {'state': 'COMPLETED', 'result': async_result.result}
+        elif async_result.state == 'FAILURE':
+            return {'state': 'FAILED', 'error': str(async_result.info)}
+        return {'state': async_result.state}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="problem-breakdowns">Problem Breakdowns (Long Tasks in Practice)</h2>
+  <p>
+    Let's analyze how major production environments optimize long-running task infrastructure.
+  </p>
+
+  <h3>YouTube / TikTok (Video Encoding Pipelines)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Ingesting massive raw video uploads and converting them into 5+ HLS resolution formats, which demands high CPU usage.</li>
+    <li><strong>Design Selection:</strong> **DAG Orchestration Workers + Priority Queues**. Videos are not transcoded by a single worker thread. Instead, they are parsed as Directed Acyclic Graphs (DAGs) and split into parallel sub-tasks (e.g. transcode segment 1, transcode segment 2). Dynamic scaling pools (auto-scaled by message queue depth) spin up computing nodes. Tasks are prioritized using separate broker queues: paid/premium account uploads go to high-priority queues, ensuring faster processing than free uploads.</li>
+  </ul>
+
+  <h3>SaaS Platforms (Heavy Report Exports)</h3>
+  <ul>
+    <li><strong>Problem:</strong> A user clicks "Export all data as CSV" in an analytics dashboard. Processing the database scan spikes CPU and locks tables.</li>
+    <li><strong>Design Selection:</strong> **Rate-limited Batch Pulling + S3 Presigned Downloads**. Workers query the database in small batch chunks (e.g., 1,000 rows at a time using keyset pagination) rather than loading all rows into RAM. The worker streams the CSV results directly to S3. Once completed, the worker writes the S3 URL to the database and flags the job status as `COMPLETED`. The client UI, which was polling, receives the download URL and prompts the user.</li>
+  </ul>
+
+  <h3>Password Resets & transactional alerts</h3>
+  <ul>
+    <li><strong>Problem:</strong> Email APIs can experience transient timeouts, but users expect reset tokens within seconds.</li>
+    <li><strong>Design Selection:</strong> **RabbitMQ Pub/Sub + DLQ**. The user registration/security controller writes the email payload to RabbitMQ and returns `200 Success` instantly. Independent mail worker threads pull from RabbitMQ and call the third-party provider (SendGrid/Mailgun). If the API is down, RabbitMQ retries using exponential backoff. If it fails repeatedly, the token payload goes to a DLQ so admins can monitor email delivery bottlenecks without locking the login screen.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Task Processing Architecture Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>Execution Context</th>
+          <th>Durability</th>
+          <th>Horizontal Scalability</th>
+          <th>Operational Complexity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">In-Process Async Threads</td>
+          <td>Application RAM (Spring Async)</td>
+          <td>Poor (Crashes lose tasks)</td>
+          <td>Low (Bound to server node)</td>
+          <td>Minimal</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Decoupled Task Queues</td>
+          <td>Message Broker + Worker Pool</td>
+          <td>High (Broker persists tasks)</td>
+          <td>Excellent (Add worker nodes)</td>
+          <td>Medium-High</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Batch Schedulers</td>
+          <td>Quartz / Spring Batch</td>
+          <td>High (DB Scheduled state)</td>
+          <td>Medium (Clustered schedulers)</td>
+          <td>Medium</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Keep your web servers lightweight. Offload intensive computations to background worker fleets, coordinate task queues using durable brokers, track statuses asynchronously, and enforce strict retries and idempotency controls.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Defend the thread pool:</strong> Always explain how running heavy operations on web threads leads to gateway timeouts and thread pool starvation.</li>
+      <li><strong>Decouple with 202 Accepted:</strong> Return a job UUID immediately to keep client connections short and stateless.</li>
+      <li><strong>Isolate bad tasks with DLQs:</strong> Discuss poison pills and how dead letter queues prevent bad input payloads from breaking your background worker pools.</li>
+      <li><strong>Prevent double processing:</strong> Always mention idempotency keys checked at the worker layer to prevent duplicate task execution from at-least-once delivery queues.</li>
+    </ul>
+  </div>
+</section>

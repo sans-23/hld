@@ -26,6 +26,10 @@ import TimeSeriesDatabases from '../content/articles/time-series.mdx';
 import RealTime from '../content/articles/real-time.mdx';
 import Contention from '../content/articles/contention.mdx';
 import MultiStep from '../content/articles/multi-step.mdx';
+import ScalingReads from '../content/articles/scaling-reads.mdx';
+import ScalingWrites from '../content/articles/scaling-writes.mdx';
+import LargeBlobs from '../content/articles/large-blobs.mdx';
+import LongRunning from '../content/articles/long-running.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -58,6 +62,10 @@ export default function MainContent() {
     if (articleId === 'real-time') return <RealTime />;
     if (articleId === 'contention') return <Contention />;
     if (articleId === 'multi-step') return <MultiStep />;
+    if (articleId === 'scaling-reads') return <ScalingReads />;
+    if (articleId === 'scaling-writes') return <ScalingWrites />;
+    if (articleId === 'large-blobs') return <LargeBlobs />;
+    if (articleId === 'long-running') return <LongRunning />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;

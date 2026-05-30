@@ -1,0 +1,466 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="#core-concepts">Patterns</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Scaling Reads</span>
+  </div>
+  <h1>Scaling Reads</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Learn how to handle extreme read traffic using replicas, multi-level caching, and pre-computation.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Patterns & Data Scaling
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<div className="video-walkthrough-banner">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+  <div>
+    <div className="video-walkthrough-title">Watch Video Walkthrough</div>
+    <div className="video-walkthrough-desc">Watch the author walk through the problem step-by-step</div>
+  </div>
+</div>
+
+<p>
+  Most web applications have highly asymmetric traffic profiles. Social media platforms, news sites, and e-commerce catalogs frequently see read-to-write ratios of 95:5 or even 99:1. A system that serves 100,000 requests per second may only see 1,000 writes.
+</p>
+<p>
+  If your primary database is responsible for processing both reads and writes, read queries will compete for connections and CPU cycles, eventually bottlenecking the database. This guide details how to scale your read capacity horizontally and maintain consistency in read-heavy architectures.
+</p>
+
+<section className="content-section">
+  <h2 id="core-problem">The Core Problem</h2>
+  <p>
+    Databases typically write data to disk. Disk seeks are slow (taking milliseconds), whereas reading from memory takes nanoseconds. Even with indexes and memory buffers, a database's read capacity is restricted by:
+  </p>
+  <ul>
+    <li><strong>Connection pool limits:</strong> Read queries block connections, forcing other requests to queue.</li>
+    <li><strong>Disk I/O bottlenecks:</strong> Heavy join queries and aggregation filters pull data from cold disk storage, creating disk queues.</li>
+    <li><strong>CPU saturation:</strong> Parsing SQL queries, sorting results, and evaluating complex index paths consumes database cores.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="read-replicas">Read Replicas & Replication Lag</h2>
+  <p>
+    To scale read capacity, we use a **Master-Replica (Primary-Secondary) database topology**. Writes are sent exclusively to the **Primary Database**, which processes them and propagates updates to one or more **Read Replicas**.
+  </p>
+  
+  <div className="diagram-container">
+    <div className="diagram-title">Replication Lag Bottleneck</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ display: 'flex', gap: '80px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '120px' }}>User A (Writer)</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '120px' }}>User B (Reader)</div>
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        {/* User A writes to Primary */}
+        <line x1="32%" y1="0" x2="32%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="18%" y="18" fill="var(--primary)" fontSize="9">1. Update Profile</text>
+        
+        {/* User B reads from Replica */}
+        <line x1="68%" y1="30" x2="68%" y2="0" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+        <text x="72%" y="18" fill="#15448e" fontSize="9">3. Read Profile (Stale!)</text>
+      </svg>
+
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '150px' }}>Primary DB</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '150px', background: '#eceff1', color: '#455a64', borderColor: '#b0bec5' }}>Read Replica</div>
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        {/* Async Replication Lag */}
+        <line x1="32%" y1="0" x2="68%" y2="0" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" strokeDasharray="3,3" />
+        <text x="50%" y="22" fill="#7c3aed" fontSize="9" textAnchor="middle">2. Async Replication (Lag: 500ms)</text>
+      </svg>
+
+    </div>
+  </div>
+
+  <p>
+    Because replication is typically **asynchronous** to avoid slowing down writes, it introduces **Replication Lag**. If User A updates their username, and User B queries a replica 50ms later, User B will see the stale, pre-update username.
+  </p>
+
+  <h3 id="read-your-own-writes">Read-Your-Own-Writes Consistency</h3>
+  <p>
+    Replication lag is particularly jarring for the *writer*. If a user edits their comment, hits save, and the page refreshes, they expect to see their new comment. If the read hits a lagging replica, they see their old comment, leading them to think the update failed.
+  </p>
+  <p>
+    To ensure **Read-Your-Own-Writes** consistency:
+  </p>
+  <ol>
+    <li><strong>Session Pinning / Middleware:</strong> When a user performs a write, the server registers the write event (e.g., storing a timestamp in the user's session or cookie).</li>
+    <li><strong>Conditional Routing:</strong> For any read queries within a short window (e.g., 5 seconds) after the write, the routing middleware forces the query to go to the **Primary Database** instead of a replica.</li>
+    <li><strong>Replica Fallback:</strong> Once the window expires, reads fall back to replicas.</li>
+  </ol>
+
+  <div className="diagram-container">
+    <div className="diagram-title">Read-Your-Own-Writes Session Routing</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>User Client</div>
+      
+      <svg width="100%" height="24" style={{ overflow: 'visible' }}>
+        <line x1="50%" y1="0" x2="50%" y2="24" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '280px', padding: '12px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a', fontStyle: 'normal' }}>
+        <strong>Routing Middleware</strong>
+        <div style={{ fontSize: '0.65rem', marginTop: '2px', opacity: 0.8 }}>Is cookie "last_write" &lt; 5s old?</div>
+      </div>
+
+      <svg width="100%" height="40" style={{ overflow: 'visible' }}>
+        {/* Yes path to Primary */}
+        <line x1="38%" y1="0" x2="20%" y2="40" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="18%" y="22" fill="var(--primary)" fontSize="9">YES (Route to Primary)</text>
+        
+        {/* No path to Replica */}
+        <line x1="62%" y1="0" x2="80%" y2="40" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+        <text x="64%" y="22" fill="#15448e" fontSize="9">NO (Route to Replica)</text>
+      </svg>
+
+      <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>Primary DB</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>Read Replica</div>
+      </div>
+
+    </div>
+  </div>
+
+  <CodeTabs>
+    <CodeTab label="Java" lang="java" code={`// Spring AbstractRoutingDataSource for Primary/Replica dynamic routing
+public class TransactionRoutingDataSource extends AbstractRoutingDataSource {
+    @Override
+    protected Object determineCurrentLookupKey() {
+        // Return context key set by transactional boundary or session interceptor
+        return TransactionSynchronizationManager.isCurrentTransactionReadOnly() 
+            ? DataSourceType.REPLICA 
+            : DataSourceType.PRIMARY;
+    }
+}
+
+// Interceptor checking for user's recent writes
+@Component
+public class ReadYourOwnWritesInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) {
+        HttpSession session = req.getSession(false);
+        if (session != null) {
+            Long lastWrite = (Long) session.getAttribute("LAST_WRITE_TIMESTAMP");
+            if (lastWrite != null && (System.currentTimeMillis() - lastWrite) < 5000) {
+                // Force routing context to primary database
+                RoutingContextHolder.set(DataSourceType.PRIMARY);
+            }
+        }
+        return true;
+    }
+    
+    @Override
+    public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) {
+        RoutingContextHolder.clear();
+    }
+}`} />
+    <CodeTab label="Python" lang="python" code={`# Python SQLAlchemy Master-Replica Dynamic Routing
+from sqlalchemy.orm import Session, SessionMaker
+from sqlalchemy import create_engine
+
+class RoutingSession(Session):
+    def __init__(self, engines, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.engines = engines  # Dictionary: {"primary": engine, "replica": engine}
+        self.force_primary = False
+
+    def get_bind(self, mapper=None, clause=None):
+        # Force primary if request context is set to ensure read-your-own-writes
+        if self.force_primary:
+            return self.engines["primary"]
+            
+        # Route to primary on writes, replica on read-only queries
+        if self._flushing or (clause is not None and not clause.is_select):
+            return self.engines["primary"]
+        return self.engines["replica"]
+
+# FastAPI middleware for Read-Your-Own-Writes
+@app.middleware("http")
+async def read_your_own_writes_middleware(request: Request, call_next):
+    last_write = request.cookies.get("last_write_timestamp")
+    db_session = request.state.db  # Assuming session is injected
+    
+    import time
+    if last_write and (time.time() - float(last_write)) < 5.0:
+        db_session.force_primary = True
+        
+    response = await call_next(request)
+    return response`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="caching-strategies">Multi-Level Caching</h2>
+  <p>
+    The best query is the one you never make to the database. Multi-level caching distributes read traffic across different layers of the infrastructure, closer to the user:
+  </p>
+  <ol>
+    <li><strong>Client/Browser Cache:</strong> Storing static assets or session data in local memory or localStorage.</li>
+    <li><strong>CDN (Content Delivery Network):</strong> Edge servers caching static media, documents, and public API responses globally.</li>
+    <li><strong>API Gateway Cache:</strong> Caching endpoint outputs to prevent queries from hitting application servers.</li>
+    <li><strong>In-Memory Cache (Redis/Memcached):</strong> Key-value memory stores serving database queries in &lt; 2ms.</li>
+    <li><strong>In-Process Cache:</strong> Storing configuration files or static lookups directly in application server memory (heap) to avoid network calls entirely.</li>
+  </ol>
+</section>
+
+<section className="content-section">
+  <h2 id="precomputation-materialization">Pre-computation & Feed Generation</h2>
+  <p>
+    When reads require complex operations—such as joining multiple tables, calculating aggregations, or filtering feeds based on user relationships—running the query on demand is too slow.
+  </p>
+  <p>
+    We scale this using **Pre-computation (Fan-out-on-write)**:
+  </p>
+  <ul>
+    <li><strong>Fan-out-on-write:</strong> When a write occurs (e.g., a creator posts a video), a background worker pulls the creator's follower list and pre-injects the post ID into the feed caches of all active followers in Redis.</li>
+    <li><strong>Read Path:</strong> When a follower reads their feed, they simply fetch their pre-computed list from Redis in $O(1)$ time, bypassing database joins.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="cqrs">CQRS Pattern</h2>
+  <p>
+    **Command Query Responsibility Segregation (CQRS)** separates the database models for write operations (Commands) from read operations (Queries).
+  </p>
+  <p>
+    Under high read scale, relational tables designed for writes (normalized tables to prevent duplicate writes) are often highly inefficient for complex searches or filters.
+  </p>
+
+  {/* CQRS Diagram */}
+  <div className="diagram-container">
+    <div className="diagram-title">CQRS Architecture</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+      
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Command (Write)</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Query (Read)</div>
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        <line x1="32%" y1="0" x2="32%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <line x1="68%" y1="0" x2="68%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+      </svg>
+
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '150px' }}>Write DB (RDBMS)</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '150px', background: '#e8f5e9', color: '#2e7d32', borderColor: '#c8e6c9' }}>Read DB (Elasticsearch)</div>
+      </div>
+
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        {/* CDC Event flow */}
+        <line x1="32%" y1="0" x2="68%" y2="0" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" strokeDasharray="3,3" />
+        <text x="50%" y="22" fill="#7c3aed" fontSize="9" textAnchor="middle">Async Sync (CDC / Debezium / Kafka)</text>
+      </svg>
+
+    </div>
+  </div>
+
+  <p>
+    <strong>How it works:</strong>
+  </p>
+  <ol>
+    <li>The write path uses a relational database optimized for consistency and normalized schemas.</li>
+    <li>Every update triggers a Change Data Capture (CDC) event that streams modifications to a read-optimized search index (e.g. Elasticsearch) or a denormalized view table.</li>
+    <li>The read path queries only the read-optimized store, enabling fast text searches and aggregations without impacting write performance.</li>
+  </ol>
+</section>
+
+<section className="content-section">
+  <h2 id="problem-breakdowns">Problem Breakdowns (Read Scaling in Practice)</h2>
+  <p>
+    Let's analyze how major system design problems apply read-scaling patterns.
+  </p>
+
+  <h3>Facebook News Feed (Feed Loading)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Millions of concurrent users request their home feed. Running joins on posts and followers in SQL on every refresh is too slow.</li>
+    <li><strong>Design Selection:</strong> **Pre-computed Caching (Fan-out-on-write) + CDN**. When a post is made, it is pushed to followers' feed cache arrays in Redis. Reads are simple key lookups. Public posts by celebrities with millions of followers use a hybrid "fan-out-on-read" approach to prevent write amplification.</li>
+  </ul>
+
+  <h3>Robinhood (Stock Price Streaming)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Millions of users watching the same stock chart. The price database cannot handle millions of reads.</li>
+    <li><strong>Design Selection:</strong> **SSE Edge Broadcast + In-Memory Hot Caching**. Stock prices are cached in an active Redis cluster. Instead of client polling, an API Gateway streams ticks to browsers using Server-Sent Events (SSE). The gateway reads from the hot cache, keeping database load near zero.</li>
+  </ul>
+
+  <h3>E-Commerce Catalog (Product Browsing)</h3>
+  <ul>
+    <li><strong>Problem:</strong> Serving millions of users browsing product descriptions that rarely change.</li>
+    <li><strong>Design Selection:</strong> **CDN Caching + Cache-Aside (Redis)**. Because product descriptions change slowly, static HTML descriptions and image catalogs are cached at CDN edge nodes. Dynamic prices and stock levels are fetched via Cache-Aside from a Redis cluster.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Read Scaling Pattern Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Consistency</th>
+          <th>Read Latency</th>
+          <th>DB Write Overhead</th>
+          <th>Complexity</th>
+          <th>Ideal Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Read Replicas</td>
+          <td>Eventual (Lag)</td>
+          <td>Medium</td>
+          <td>Low (async replication)</td>
+          <td>Low</td>
+          <td>Standard read-heavy SQL apps</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Cache-Aside</td>
+          <td>Eventual (TTL/Invalidation)</td>
+          <td>Ultra-Low (&lt; 2ms)</td>
+          <td>Low</td>
+          <td>Medium</td>
+          <td>Session stores, hot database rows</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Pre-computation</td>
+          <td>Eventual</td>
+          <td>Ultra-Low</td>
+          <td>High (on write)</td>
+          <td>High</td>
+          <td>Social media feeds, dashboard timelines</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">CQRS</td>
+          <td>Eventual (CDC lag)</td>
+          <td>Low</td>
+          <td>Medium (sync pipeline)</td>
+          <td>High</td>
+          <td>Complex search engines, rich analytics dashboards</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Scaling reads is about moving data closer to the consumer. In interviews, establish your read-to-write ratio, identify query bottlenecks, and propose caching or replicas while addressing the resulting consistency tradeoffs.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Acknowledge replication lag:</strong> When proposing read replicas, always address the read-your-own-writes consistency problem and session pinning mitigations.</li>
+      <li><strong>Scale reads close to users:</strong> Leverage CDNs for static content and dynamic page headers to offload queries from your application servers.</li>
+      <li><strong>Decouple with CQRS for search:</strong> Do not run complex SQL `LIKE` queries against transactional databases. Sync writes to Elasticsearch asynchronously for reading.</li>
+      <li><strong>Pre-compute expensive feeds:</strong> Shift the work from read-time joins to write-time fan-out buffering in memory for feeds and dashboards.</li>
+    </ul>
+  </div>
+</section>
