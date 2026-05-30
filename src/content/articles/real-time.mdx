@@ -1,6 +1,24 @@
 import CodeBlock from '../../components/ui/CodeBlock';
 import Callout from '../../components/ui/Callout';
 
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
 {/* ─── Header ─── */}
 <div className="article-header">
   <div className="breadcrumb">
@@ -67,6 +85,7 @@ import Callout from '../../components/ui/Callout';
     With short polling, the client makes an HTTP request to the server at a fixed, short interval (e.g., every 2 or 5 seconds). The server immediately responds with either new data or an empty response if nothing has changed.
   </p>
 
+  {/* Short Polling Diagram */}
   <div className="diagram-container">
     <div className="diagram-title">Short Polling Sequence</div>
     <div className="sequence-diagram">
@@ -77,20 +96,40 @@ import Callout from '../../components/ui/Callout';
       <div className="sequence-steps">
         <div className="sequence-step">
           <div className="sequence-label">Request 1</div>
-          <div className="sequence-arrow sequence-arrow--right">── GET /feed/updates ──></div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>GET /feed/updates</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
         </div>
         <div className="sequence-step">
           <div className="sequence-label">Response 1</div>
-          <div className="sequence-arrow sequence-arrow--left">‹── 200 OK (No updates) ───</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#15448e' }}>200 OK (No updates)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+            </svg>
+          </div>
         </div>
         <div className="sequence-divider">Wait 3 Seconds</div>
         <div className="sequence-step">
           <div className="sequence-label">Request 2</div>
-          <div className="sequence-arrow sequence-arrow--right">── GET /feed/updates ──></div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>GET /feed/updates</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
         </div>
         <div className="sequence-step">
           <div className="sequence-label">Response 2</div>
-          <div className="sequence-arrow sequence-arrow--left">‹── 200 OK (New Feed Event!) ───</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#15448e' }}>200 OK (New Feed Event!)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+            </svg>
+          </div>
         </div>
       </div>
     </div>
@@ -106,12 +145,13 @@ import Callout from '../../components/ui/Callout';
 
   <h3 id="long-polling">Long Polling</h3>
   <p>
-    Long polling is an optimization over short polling. The client requests data, but instead of responding immediately with an empty payload, the server **holds the request open** (keeps the connection pending) until new data becomes available or a timeout is reached.
+    Long polling is an optimization over short polling. The client requests data, but instead of responding immediately with an empty payload, the server **holds the request open** (keeps the connection pending) until new data becomes available or a timeout occurs.
   </p>
   <p>
     Once new data is sent, the client immediately initiates a new long-polling request, starting the cycle again.
   </p>
 
+  {/* Long Polling Diagram */}
   <div className="diagram-container">
     <div className="diagram-title">Long Polling Sequence</div>
     <div className="sequence-diagram">
@@ -122,19 +162,32 @@ import Callout from '../../components/ui/Callout';
       <div className="sequence-steps">
         <div className="sequence-step">
           <div className="sequence-label">Open Poll</div>
-          <div className="sequence-arrow sequence-arrow--right">── GET /feed/updates ──></div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>GET /feed/updates</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
         </div>
-        <div className="sequence-step" style={{ background: 'rgba(124, 58, 237, 0.05)' }}>
+        <div className="sequence-step" style={{ background: 'rgba(124, 58, 237, 0.05)', borderRadius: '4px' }}>
           <div className="sequence-label">Hanging...</div>
-          <div className="sequence-arrow sequence-arrow--bidirectional">── (Server waits for updates...) ──</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.72rem', color: '#7c3aed', fontStyle: 'italic', textAlign: 'center' }}>
+              Server waits for updates (keeps connection open)
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="#7c3aed" strokeWidth="1" strokeDasharray="3,3" />
+            </svg>
+          </div>
         </div>
         <div className="sequence-step">
           <div className="sequence-label">Event Triggers</div>
-          <div className="sequence-arrow sequence-arrow--left">‹── 200 OK (New Message) ───</div>
-        </div>
-        <div className="sequence-step">
-          <div className="sequence-label">Re-open Poll</div>
-          <div className="sequence-arrow sequence-arrow--right">── GET /feed/updates ──></div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#15448e' }}>200 OK (New Message payload)</div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+            </svg>
+          </div>
         </div>
       </div>
     </div>
@@ -160,27 +213,27 @@ import Callout from '../../components/ui/Callout';
     SSE is a standard HTML5 protocol built on top of persistent HTTP connections. The client opens an HTTP connection with the header `Accept: text/event-stream`. The server keeps this connection open and pushes events as a stream of plaintext lines.
   </p>
 
-  <CodeBlock language="javascript">{`// Node.js Express SSE Server endpoint
-app.get('/stream', (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
-  });
+  <CodeBlock language="python">{`# Python FastAPI SSE Server Endpoint
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import asyncio
+import json
 
-  // Push an event immediately
-  res.write("data: Connected to live events!\\n\\n");
+app = FastAPI()
 
-  // Keep connection alive, push updates when they happen
-  const updateInterval = setInterval(() => {
-    const data = JSON.stringify({ tick: Date.now() });
-    res.write(\`data: \${data}\\n\\n\`);
-  }, 2000);
+async def event_generator():
+    # Push an event immediately upon connection
+    yield "data: Connected to live events!\\n\\n"
+    
+    while True:
+        await asyncio.sleep(2)
+        # Yield data format: "data: {JSON}\\n\\n"
+        data = json.dumps({"tick": int(asyncio.get_event_loop().time())})
+        yield f"data: {data}\\n\\n"
 
-  req.on('close', () => {
-    clearInterval(updateInterval);
-  });
-});`}</CodeBlock>
+@app.get("/stream")
+async def stream():
+    return StreamingResponse(event_generator(), media_type="text/event-stream")`}</CodeBlock>
 
   <p>
     <strong>Tradeoffs:</strong>
@@ -195,8 +248,9 @@ app.get('/stream', (req, res) => {
     WebSockets provide full-duplex, bidirectional communication over a single TCP connection. The connection starts as a standard HTTP request. The client requests a protocol change by sending a connection upgrade header (`Upgrade: websocket`). If the server agrees, it returns an HTTP `101 Switching Protocols` response, and the TCP socket remains open as a raw, bidirectional frame transport (`ws://` or `wss://`).
   </p>
 
+  {/* WebSocket Upgrade Sequence */}
   <div className="diagram-container">
-    <div className="diagram-title">WebSocket Upgrade Flow</div>
+    <div className="diagram-title">WebSocket Upgrade Handshake</div>
     <div className="sequence-diagram">
       <div className="sequence-participants">
         <div className="sequence-participant">Client (Browser)</div>
@@ -205,38 +259,72 @@ app.get('/stream', (req, res) => {
       <div className="sequence-steps">
         <div className="sequence-step">
           <div className="sequence-label">HTTP Handshake</div>
-          <div className="sequence-arrow sequence-arrow--right">── GET /chat (Upgrade: websocket) ──></div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: 'var(--primary)' }}>
+              GET /chat HTTP/1.1 (Upgrade: websocket)
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+            </svg>
+          </div>
         </div>
         <div className="sequence-step">
-          <div className="sequence-label">Handshake Response</div>
-          <div className="sequence-arrow sequence-arrow--left">‹── 101 Switching Protocols ───</div>
+          <div className="sequence-label">Upgrade Accepted</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#15448e' }}>
+              HTTP/1.1 101 Switching Protocols
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="#15448e" strokeWidth="1.5" markerEnd="url(#arrowhead-blue)" />
+            </svg>
+          </div>
         </div>
-        <div className="sequence-divider">TCP Connection Established (Bi-directional)</div>
+        <div className="sequence-divider">TCP Socket Upgraded to ws:// (Full-Duplex)</div>
         <div className="sequence-step">
           <div className="sequence-label">Client Frame</div>
-          <div className="sequence-arrow sequence-arrow--right">─── "Hello Server" (Data Frame) ───></div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#7c3aed' }}>
+              Send: {"{ \"type\": \"msg\", \"content\": \"Hello!\" }"}
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="0%" y1="4" x2="100%" y2="4" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+            </svg>
+          </div>
         </div>
         <div className="sequence-step">
-          <div className="sequence-label">Server Frame</div>
-          <div className="sequence-arrow sequence-arrow--left">‹─── "New Notification" (Data Frame) ───</div>
+          <div className="sequence-label">Server Push</div>
+          <div className="sequence-arrow">
+            <div style={{ fontSize: '0.75rem', marginBottom: '2px', color: '#7c3aed' }}>
+              Push: {"{ \"status\": \"delivered\" }"}
+            </div>
+            <svg width="100%" height="8" style={{ overflow: 'visible', display: 'block' }}>
+              <line x1="100%" y1="4" x2="0%" y2="4" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+            </svg>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <CodeBlock language="javascript">{`// Client-side browser implementation
-const socket = new WebSocket('wss://api.example.com/chat');
+  <CodeBlock language="python">{`# Python FastAPI WebSocket Endpoint
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-// Connection opened
-socket.addEventListener('open', (event) => {
-  socket.send(JSON.stringify({ type: 'join', room: 'lobby' }));
-});
+app = FastAPI()
 
-// Listen for messages
-socket.addEventListener('message', (event) => {
-  const message = JSON.parse(event.data);
-  console.log('Message from server:', message);
-});`}</CodeBlock>
+@app.websocket("/chat")
+async def websocket_endpoint(websocket: WebSocket):
+    # Accept client handshake and switch protocols
+    await websocket.accept()
+    try:
+        await websocket.send_json({"type": "status", "message": "Connected!"})
+        while True:
+            # Receive incoming text/JSON frames
+            data = await websocket.receive_json()
+            # Process or dispatch message
+            await websocket.send_json({"type": "echo", "payload": data})
+    except WebSocketDisconnect:
+        # Clean up connection maps on close
+        print("Client disconnected")`}</CodeBlock>
 
   <p>
     <strong>Tradeoffs:</strong>
@@ -270,24 +358,35 @@ socket.addEventListener('message', (event) => {
     A WebSocket connection is stateful. Once Client A connects to WebSocket Server 1, they are bound to that specific physical machine. The server must keep the TCP connection in memory.
   </p>
   
+  {/* Stateful connections diagram */}
   <div className="diagram-container">
-    <div className="diagram-title">The Stateful connection routing problem</div>
-    <div className="diagram-flow" style={{ gap: '16px' }}>
-      <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Client A</div>
-        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Client B</div>
+    <div className="diagram-title">Stateful Connection Boundary</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+      
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '120px' }}>Client A</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '120px' }}>Client B</div>
       </div>
-      <div style={{ display: 'flex', gap: '80px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-arrow">↓ (Holds TCP Connection)</div>
-        <div className="diagram-arrow">↓ (Holds TCP Connection)</div>
+
+      <div style={{ display: 'flex', gap: '80px', justifyContent: 'center', width: '100%', height: '40px', position: 'relative' }}>
+        <svg width="100%" height="40" style={{ overflow: 'visible', position: 'absolute', top: 0, left: 0 }}>
+          {/* Client A to WS 1 */}
+          <line x1="38%" y1="0" x2="38%" y2="40" stroke="#7c3aed" strokeWidth="2" strokeDasharray="4" markerEnd="url(#arrowhead-purple)" />
+          {/* Client B to WS 2 */}
+          <line x1="62%" y1="0" x2="62%" y2="40" stroke="#7c3aed" strokeWidth="2" strokeDasharray="4" markerEnd="url(#arrowhead-purple)" />
+        </svg>
       </div>
-      <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px' }}>WS Server 1</div>
-        <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px' }}>WS Server 2</div>
+
+      <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>WS Host 1</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '140px' }}>WS Host 2</div>
       </div>
-      <div className="diagram-arrow" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>
-        ⚠️ How does Server 1 send a message to Client B on Server 2?
+
+      <div className="callout-box callout-box--warning" style={{ margin: '12px 0 0 0', width: '100%', maxWidth: '420px' }}>
+        <div className="callout-title">The Boundary Problem</div>
+        <p>Client B is on Host 2. Host 1 has no reference to Client B's TCP socket. Direct server-to-server messaging is required to route events.</p>
       </div>
+
     </div>
   </div>
 
@@ -302,46 +401,54 @@ socket.addEventListener('message', (event) => {
 
   <h3 id="pub-sub-broadcasting">Pub/Sub Broadcasting (Redis/Kafka)</h3>
   <p>
-    If Client A sends a message intended for Client B, but Client A is connected to **WS Server 1** and Client B is connected to **WS Server 2**, the server hosting Client A has no direct path to send the message.
-  </p>
-  <p>
-    To solve this, we decouple connection management from event broadcasting by introducing a **Pub/Sub Broker** (e.g., Redis Pub/Sub, NATS, or RabbitMQ).
+    To resolve the stateful boundaries, we decouple connection management from event broadcasting by introducing a **Pub/Sub Broker** (e.g., Redis Pub/Sub, NATS, or RabbitMQ).
   </p>
 
+  {/* Redis Pub/Sub Broadcast Architecture Diagram */}
   <div className="diagram-container">
-    <div className="diagram-title">Distributed Real-time Pub/Sub Architecture</div>
-    <div className="diagram-flow" style={{ gap: '16px' }}>
-      {/* Step 1: Clients sending messages */}
-      <div style={{ display: 'flex', gap: '48px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Client A (typing...)</div>
-        <div className="diagram-box diagram-box--client" style={{ maxWidth: '140px' }}>Client B (waiting)</div>
+    <div className="diagram-title">Distributed Broker Broadcast Flow</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', position: 'relative' }}>
+      
+      {/* Layer 1: Clients */}
+      <div style={{ display: 'flex', gap: '120px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '110px' }}>Client A</div>
+        <div className="diagram-box diagram-box--client" style={{ maxWidth: '110px' }}>Client B</div>
       </div>
-      <div style={{ display: 'flex', gap: '100px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-arrow">↓ Send Message (WS)</div>
-        <div className="diagram-arrow" style={{ opacity: 0 }}>↓</div>
+
+      {/* Connection Arrows Layer 1 to 2 */}
+      <svg width="100%" height="30" style={{ overflow: 'visible' }}>
+        {/* Client A sends message to Server 1 */}
+        <line x1="35%" y1="0" x2="35%" y2="30" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="26%" y="18" fill="var(--primary)" fontSize="10" fontWeight="600">1. Send Msg</text>
+        
+        {/* Server 2 pushes message to Client B */}
+        <line x1="65%" y1="30" x2="65%" y2="0" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+        <text x="70%" y="18" fill="#7c3aed" fontSize="10" fontWeight="600">4. TCP Push</text>
+      </svg>
+
+      {/* Layer 2: WS Servers */}
+      <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', width: '100%' }}>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '150px' }}>WS Server 1</div>
+        <div className="diagram-box diagram-box--server" style={{ maxWidth: '150px' }}>WS Server 2</div>
       </div>
-      {/* Step 2: Stateful WS Servers */}
-      <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px' }}>WS Server 1</div>
-        <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px', background: '#eceff1', color: '#455a64', borderColor: '#b0bec5' }}>WS Server 2</div>
+
+      {/* Connection Arrows Layer 2 to 3 */}
+      <svg width="100%" height="40" style={{ overflow: 'visible' }}>
+        {/* Server 1 publishes to Redis */}
+        <path d="M 35% 0 C 35% 20, 48% 20, 48% 40" fill="none" stroke="var(--primary)" strokeWidth="1.5" markerEnd="url(#arrowhead-primary)" />
+        <text x="25%" y="28" fill="var(--primary)" fontSize="10" fontWeight="600">2. Publish</text>
+
+        {/* Redis broadcasts to Server 2 */}
+        <path d="M 52% 40 C 52% 20, 65% 20, 65% 0" fill="none" stroke="#7c3aed" strokeWidth="1.5" markerEnd="url(#arrowhead-purple)" />
+        <text x="68%" y="28" fill="#7c3aed" fontSize="10" fontWeight="600">3. Broadcast</text>
+      </svg>
+
+      {/* Layer 3: Redis */}
+      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '280px', padding: '12px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a', fontStyle: 'normal' }}>
+        <strong>Redis Pub/Sub Bus</strong>
+        <div style={{ fontSize: '0.7rem', marginTop: '4px', opacity: 0.8 }}>Channel: user_B_feed</div>
       </div>
-      <div style={{ display: 'flex', gap: '100px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-arrow">↓ Publish Event</div>
-        <div className="diagram-arrow" style={{ transform: 'rotate(180deg)', color: 'var(--primary)' }}>↓ Deliver Message (WS)</div>
-      </div>
-      {/* Step 3: Redis Pub/Sub */}
-      <div className="diagram-box diagram-box--connection" style={{ maxWidth: '300px', background: '#ffebee', color: '#c62828', borderColor: '#ef9a9a' }}>
-        Redis Pub/Sub (Channel: user_B_room)
-      </div>
-      <div style={{ display: 'flex', gap: '100px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-arrow" style={{ transform: 'rotate(45deg)' }}>↗ Broadcasts to subscribers</div>
-        <div className="diagram-arrow" style={{ transform: 'rotate(135deg)' }}>↖ Broadcasts to subscribers</div>
-      </div>
-      {/* Step 4: WS Servers (Subscribers) */}
-      <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', width: '100%' }}>
-        <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px', background: '#eceff1', color: '#455a64', borderColor: '#b0bec5' }}>WS Server 1 (Subscribed)</div>
-        <div className="diagram-box diagram-box--server" style={{ maxWidth: '180px' }}>WS Server 2 (Subscribed)</div>
-      </div>
+
     </div>
   </div>
 
@@ -355,44 +462,58 @@ socket.addEventListener('message', (event) => {
     <li>WS Server 2 receives the message from Redis, identifies that Client B has an active socket on its machine, and pushes the payload directly to Client B.</li>
   </ol>
 
-  <CodeBlock language="javascript">{`// WebSocket Server subscriber logic (Redis + ws)
-const WebSocket = require('ws');
-const redis = require('redis');
+  <CodeBlock language="python">{`# Redis Pub/Sub + WebSocket Server in Python (Asyncio)
+import asyncio
+import websockets
+import redis.asyncio as aioredis
+import json
 
-const wss = new WebSocket.Server({ port: 8080 });
-const pub = redis.createClient();
-const sub = redis.createClient();
+# Local map tracking connections hosted on this physical server: userId -> WebSocket
+local_connections = {}
 
-// Local map of userId -> WebSocket connection
-const activeConnections = new Map();
+async def redis_broadcast_listener(redis_uri: str):
+    redis_client = aioredis.from_url(redis_uri)
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("realtime_events")
+    
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                payload = json.loads(message["data"])
+                target_user = payload.get("target_id")
+                # Route the message if the user is connected to THIS machine
+                ws = local_connections.get(target_user)
+                if ws:
+                    await ws.send(json.dumps(payload))
+    except Exception as e:
+        print(f"Redis Subscription error: {e}")
 
-wss.on('connection', (ws, req) => {
-  const userId = req.headers['user-id'];
-  activeConnections.set(userId, ws);
+async def ws_handler(websocket, path):
+    # Retrieve user credentials passed during the socket handshake
+    user_id = websocket.request_headers.get("User-Id")
+    local_connections[user_id] = websocket
+    redis_client = aioredis.from_url("redis://localhost")
+    
+    try:
+        async for message in websocket:
+            data = json.loads(message)
+            # Publish event to the Redis bus for distributed server consumption
+            await redis_client.publish("realtime_events", json.dumps(data))
+    except websockets.ConnectionClosed:
+        pass
+    finally:
+        local_connections.pop(user_id, None)
 
-  // Subscribe to this specific user's broadcast channel
-  sub.subscribe(\`user:\${userId}\`);
+async def main():
+    uri = "redis://localhost"
+    # Run the background listener to consume Redis pub/sub broadcasts
+    asyncio.create_task(redis_broadcast_listener(uri))
+    
+    async with websockets.serve(ws_handler, "0.0.0.0", 8080):
+        await asyncio.Future()  # run forever
 
-  ws.on('message', (message) => {
-    const payload = JSON.parse(message);
-    // Publish user message to target's queue
-    pub.publish(\`user:\${payload.targetId}\`, JSON.stringify(payload));
-  });
-
-  ws.on('close', () => {
-    activeConnections.delete(userId);
-    sub.unsubscribe(\`user:\${userId}\`);
-  });
-});
-
-// Listen to Redis broadcasts and route to local active socket
-sub.on('message', (channel, message) => {
-  const userId = channel.split(':')[1];
-  const ws = activeConnections.get(userId);
-  if (ws) {
-    ws.send(message);
-  }
-});`}</CodeBlock>
+if __name__ == "__main__":
+    asyncio.run(main())`}</CodeBlock>
 </section>
 
 <section className="content-section">
@@ -409,13 +530,16 @@ sub.on('message', (channel, message) => {
     <strong>Mitigation: Exponential Backoff with Jitter</strong><br/>
     Clients must not reconnect instantly. They must wait a randomized amount of time (jitter) that increases exponentially with each failed attempt.
   </p>
-  <CodeBlock language="javascript">{`// Exponential backoff with jitter formula
-function getReconnectDelay(attempt) {
-  const maxDelay = 30000; // 30 seconds max
-  const baseDelay = Math.min(maxDelay, 1000 * Math.pow(2, attempt));
-  const jitter = Math.random() * 1000; // 0-1 sec randomized buffer
-  return baseDelay + jitter;
-}`}</CodeBlock>
+
+  <CodeBlock language="python">{`# Exponential backoff with jitter in Python
+import random
+import time
+
+def get_reconnect_delay(attempt: int) -> float:
+    max_delay = 30.0  # 30 seconds max
+    base_delay = min(max_delay, 1.0 * (2 ** attempt))
+    jitter = random.uniform(0, 1.0)  # 0-1 sec randomized buffer
+    return base_delay + jitter`}</CodeBlock>
 
   <h3>Heartbeats (Ping/Pong)</h3>
   <p>
