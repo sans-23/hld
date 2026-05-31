@@ -49,6 +49,11 @@
   color: var(--text-muted);
 }
 
+.meta-item p {
+  margin: 0 !important;
+  display: inline !important;
+}
+
 .difficulty-badge {
   display: inline-flex;
   align-items: center;
