@@ -1,0 +1,374 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Virtual Threads</span>
+  </div>
+  <h1>Virtual Threads: Project Loom, Mounting Mechanics & Pinning Risks</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Analyze Java 21 virtual threads, contrast user-space scheduling with OS kernel threads, explore carrier thread mounting, and review lock pinning risks.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Concurrency
+    </span>
+    <span className="difficulty-badge difficulty-badge--advanced">Advanced</span>
+  </div>
+</div>
+
+<p>
+  For decades, Java threads operated on a 1:1 mapping model with Operating System (OS) kernel threads. While this provided access to OS multi-core schedulers, it limited scale: OS threads are heavy resources with fixed memory allocations and high context-switching costs. Project Loom (introduced in Java 21) decouples Java threads from OS threads via **Virtual Threads**.
+</p>
+<p>
+  This guide compares platform threads with virtual threads, details the mechanics of carrier thread mounting and unmounting, explains lock pinning, and demonstrates how virtual threads simplify high-concurrency scaling.
+</p>
+
+<section className="content-section">
+  <h2 id="loom-overview">Loom: Platform vs. Virtual Threads</h2>
+  <p>
+    Java divides threads into two categories:
+  </p>
+
+  <h3>1. Platform Threads (Legacy Model)</h3>
+  <ul>
+    <li>**1:1 OS Mapping:** Every `java.lang.Thread` instance is directly backed by an OS kernel thread.</li>
+    <li>**High Resource Overhead:** Each platform thread allocates a fixed stack size, typically **1 Megabyte** of virtual memory. Running 10,000 threads consumes 10 GB of RAM, regardless of whether they are active or idle.</li>
+    <li>**OS Context Switches:** When a platform thread blocks (e.g., waiting for database IO), the OS must switch thread contexts, saving registers and CPU states, which requires expensive transitions between user space and kernel space.</li>
+  </ul>
+
+  <h3>2. Virtual Threads (Project Loom Model)</h3>
+  <ul>
+    <li>**M:N Scheduling:** Many virtual threads are mapped to a small number of platform threads (**carrier threads**).</li>
+    <li>**Heap Allocation:** Virtual thread stack frames are stored as standard objects in the **Java Heap** instead of kernel space. The initial footprint is minimal, typically starting at **a few hundred bytes** or kilobytes, and grows dynamically.</li>
+    <li>**User-Space Scheduling:** Context switching is managed by the JVM in user space, avoiding OS-level interrupts. This enables scaling to millions of concurrent threads.</li>
+  </ul>
+
+  {/* Platform vs Virtual Visual */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Traditional 1:1 Model:</span><br/>
+    &nbsp;&nbsp;[Platform Thread] ──► [OS Kernel Thread] (1MB fixed stack)<br/>
+    <br/>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Loom M:N Model:</span><br/>
+    &nbsp;&nbsp;[Virtual Thread 1] ──┐<br/>
+    &nbsp;&nbsp;[Virtual Thread 2] ──┼─► [Carrier Platform Thread] ──► [OS Kernel Thread]<br/>
+    &nbsp;&nbsp;[Virtual Thread 3] ──┘&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Heap-allocated stack)<br/>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="mounting-mechanics">Mounting & Unmounting Mechanics</h2>
+  <p>
+    To execute, a virtual thread must be assigned to an underlying platform thread, which acts as its **carrier thread**. The JVM schedules virtual threads using a carrier pool backed by a `ForkJoinPool`.
+  </p>
+
+  <h3>1. Mounting</h3>
+  <p>
+    When a virtual thread becomes runnable, the JVM scheduler assigns it to a carrier thread. The scheduler copies the virtual thread's stack frames from the JVM heap to the carrier thread's actual execution stack.
+  </p>
+
+  <h3>2. Unmounting</h3>
+  <p>
+    When a virtual thread hits a blocking operation (such as thread sleep, lock acquisition, or socket read/write):
+  </p>
+  <ol>
+    <li>The JVM intercepts the block, yields execution, and suspends the virtual thread.</li>
+    <li>The virtual thread's stack frames are copied from the carrier thread back to the JVM heap.</li>
+    <li>The carrier thread is unmounted, freeing it to execute other virtual threads in the queue.</li>
+  </ol>
+  <p>
+    Once the blocking call completes, the scheduler re-queues the virtual thread. It will be mounted onto any available carrier thread (not necessarily the original one) to resume execution.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="lock-pinning">Pinning: Synchronized Block Risks</h2>
+  <p>
+    While virtual threads handle blocking operations efficiently, there are scenarios where a virtual thread cannot unmount from its carrier thread. This is known as **thread pinning**.
+  </p>
+
+  <h3>Why Pinning Occurs</h3>
+  <p>
+    A virtual thread becomes pinned to its carrier thread in two main cases:
+  </p>
+  <ol>
+    <li>**Synchronized Blocks or Methods:** When a virtual thread executes code inside a `synchronized` block or method.</li>
+    <li>**JNI Native Code:** When executing native code via Java Native Interface (JNI).</li>
+  </ol>
+  <p>
+    If a virtual thread blocks while pinned (e.g. performing blocking database IO inside a synchronized block), the underlying **carrier thread is also blocked**. Since the carrier thread is a platform thread, blocking it defeats the purpose of virtual threads and can exhaust the carrier pool.
+  </p>
+
+  {/* Refactoring advice callout */}
+  <Callout type="warning">
+    <strong>Loom Migration Rule:</strong> When preparing code for virtual threads, refactor legacy `synchronized` blocks that contain blocking IO calls to use `ReentrantLock` instead. `ReentrantLock` is fully integrated with Loom's unmounting mechanics and does not cause pinning.
+  </Callout>
+</section>
+
+<section className="content-section">
+  <h2 id="scaling-models">Thread-Per-Request Scaling</h2>
+  <p>
+    Historically, web servers used two models to handle concurrent requests:
+  </p>
+  <ul>
+    <li>**Thread-Pools:** Allocate one platform thread per request. This model is easy to write and debug but limits concurrency to the pool size (usually a few hundred).</li>
+    <li>**Reactive Programming (RxJava/WebFlux):** Use non-blocking event loops. This scales well but requires complex callback architectures, splits stack traces, and makes debugging difficult.</li>
+  </ul>
+  <p>
+    Project Loom offers the best of both worlds. Developers can write readable, synchronous, blocking code using the **thread-per-request** model, while virtual threads allow the application to scale to millions of concurrent requests under the hood.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    The playbook below covers creating virtual threads, running millions of concurrent tasks, and refactoring synchronized blocks to avoid lock pinning.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Virtual Thread Creation" lang="java" code={`import java.util.concurrent.*;
+
+public class VirtualThreadBuilders {
+    public static void main(String[] args) throws Exception {
+        // 1. Direct creation via Thread builder
+        Thread thread = Thread.ofVirtual()
+                .name("loom-worker")
+                .start(() -> {
+                    System.out.println("Running on carrier: " + Thread.currentThread());
+                });
+        thread.join();
+
+        // 2. Thread-Per-Task Executor Service
+        // Auto-closes and shuts down executor on completion
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<String> future = executor.submit(() -> {
+                TimeUnit.MILLISECONDS.sleep(100);
+                return "Task Completed";
+            });
+            System.out.println("Result: " + future.get());
+        }
+    }
+}`} />
+    <CodeTab label="Scaling Million Sleeps" lang="java" code={`import java.time.Duration;
+import java.util.concurrent.*;
+import java.util.stream.IntStream;
+
+public class MillionTasksScaling {
+    public static void main(String[] args) {
+        long start = System.currentTimeMillis();
+
+        // Run 1,000,000 parallel blocking tasks!
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            IntStream.range(0, 1_000_000).forEach(i -> {
+                executor.submit(() -> {
+                    // Simulated blocking network IO call
+                    Thread.sleep(Duration.ofSeconds(1));
+                    return i;
+                });
+            });
+        } // Executor auto-close blocks until all tasks complete
+
+        long duration = System.currentTimeMillis() - start;
+        System.out.println("Processed 1,000,000 sleeps in: " + duration + " ms");
+        // Using platform threads, this would crash the JVM with OutOfMemoryError!
+    }
+}`} />
+    <CodeTab label="Refactoring Pinning" lang="java" code={`import java.util.locks.ReentrantLock;
+
+// 1. LEGACY PINNED CODE (Synchronized locks block carrier threads)
+class LegacyResource {
+    public synchronized void loadData() {
+        try {
+            // Blocking call inside synchronized pins the carrier thread!
+            Thread.sleep(500); 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+// 2. REFACTORED LOOM-FRIENDLY CODE (ReentrantLock unmounts safely)
+class LoomFriendlyResource {
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void loadData() {
+        lock.lock();
+        try {
+            // Blocking call here unmounts the virtual thread safely
+            Thread.sleep(500); 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Threading Paradigms Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Platform Threads</th>
+          <th>Virtual Threads (Loom)</th>
+          <th>Reactive (WebFlux/RxJava)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Thread Model</td>
+          <td>1:1 with OS Kernel Thread</td>
+          <td>M:N (JVM User Space Scheduler)</td>
+          <td>Event Loop with Callback Streams</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Memory Footprint</td>
+          <td>~1 MB (fixed)</td>
+          <td>~a few hundred bytes (dynamic heap)</td>
+          <td>Minimal</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Max Active Count</td>
+          <td>Thousands (~4,000 limits)</td>
+          <td>Millions</td>
+          <td>Highly Scalable</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Context Switch Cost</td>
+          <td>High (Requires Kernel transitions)</td>
+          <td>Low (Managed by JVM in user space)</td>
+          <td>Low</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Programming Style</td>
+          <td>Synchronous (blocking)</td>
+          <td>Synchronous (blocking)</td>
+          <td>Asynchronous (non-blocking streams)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Debugging & Tracing</td>
+          <td>Easy (Simple stack traces)</td>
+          <td>Easy (Full stack traces preserved)</td>
+          <td>Difficult (Callbacks split traces)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Virtual threads simplify high-concurrency Java scaling by decoupling threads from OS resources. By shifting stack allocations to the heap, virtual threads enable writing readable, blocking code that can scale to millions of concurrent tasks, provided developers avoid lock pinning issues.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>What is the core difference between platform and virtual threads?</strong> Platform threads map 1:1 to OS threads with a fixed 1MB memory footprint. Virtual threads are managed by the JVM, store stack frames on the heap, and start with a footprint of only a few hundred bytes, scaling to millions.</li>
+      <li><strong>Explain carrier threads:</strong> Carrier threads are the platform threads used by the JVM's ForkJoinPool scheduler to run virtual threads.</li>
+      <li><strong>What is thread pinning and how do you avoid it?</strong> Pinning occurs when a virtual thread cannot be unmounted from its carrier thread, typically during JNI calls or inside `synchronized` blocks. To avoid it, refactor synchronized blocks that contain blocking IO calls to use `ReentrantLock`.</li>
+      <li><strong>Do virtual threads speed up CPU-bound tasks?</strong> No. Virtual threads scale IO-bound concurrency by freeing CPU resources during blocking operations. CPU-bound tasks require physical processors and will not see performance improvements from virtual threads.</li>
+      <li><strong>Can virtual threads dead-lock?</strong> Yes. Virtual threads are `java.lang.Thread` instances and are subject to the same synchronization and dead-lock conditions as platform threads.</li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,386 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Concurrent Collections</span>
+  </div>
+  <h1>Concurrent Collections: ConcurrentHashMap & BlockingQueues</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Analyze how the JVM executes lock-free thread-safe map lookups, bucket synchronization, CopyOnWrite arrays, and BlockingQueue structures.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Concurrency
+    </span>
+    <span className="difficulty-badge difficulty-badge--advanced">Advanced</span>
+  </div>
+</div>
+
+<p>
+  Traditional synchronized collections (like `Hashtable` or `Collections.synchronizedMap`) enforce thread safety by locking the entire collection. This creates a bottleneck in multi-threaded systems. Modern JVM applications use high-performance concurrent collections designed to minimize lock contention.
+</p>
+<p>
+  This guide analyzes the internals of `ConcurrentHashMap` bucket-level locking, details the mechanics of `CopyOnWriteArrayList` snapshots, and examines `BlockingQueue` architectures.
+</p>
+
+<section className="content-section">
+  <h2 id="chm-internals">ConcurrentHashMap: Bucket Locks & Resizing</h2>
+  <p>
+    `ConcurrentHashMap` is Java's high-performance thread-safe map. Its design has evolved to support high read/write concurrency.
+  </p>
+
+  <h3>1. Evolution of Locking Mechanisms</h3>
+  <ul>
+    <li>
+      <strong>Java 7: Segment Locking:</strong> The map was divided into an array of 16 segments, each acting as an independent hashtable with its own lock. A write only locked one segment, allowing threads to write to other segments concurrently. However, writes to the same segment were blocked.
+    </li>
+    <li>
+      <strong>Java 8+: Bucket-level Locking:</strong> Segment arrays were replaced with a flat array of volatile nodes, identical to `HashMap`. Write operations (`put`) synchronize only on the **head node** of the target bucket. Threads can write to different buckets concurrently, improving write scalability.
+    </li>
+  </ul>
+
+  {/* ConcurrentHashMap layout */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>CHM Node Array:</span> [Bucket 0] [Bucket 1] [Bucket 2] ... [Bucket N]<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼ (Synchronized on head node ONLY for writes)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Node A] ──► [Node B] (Linked list or Red-Black Tree)<br/>
+  </div>
+
+  <h3>2. Lock-Free Volatile Reads</h3>
+  <p>
+    Read operations (`get`) are **completely lock-free**. The nodes in the backing array are declared `volatile`, ensuring that any write to a node is immediately visible to reader threads. Reads traverse bucket structures without acquiring locks, eliminating read contention.
+  </p>
+
+  <h3>3. Cooperative Multi-Threaded Resizing</h3>
+  <p>
+    When a resize is triggered, a single thread begins the transition. If other threads attempt writes while a resize is in progress:
+  </p>
+  <ul>
+    <li>They encounter a special `ForwardingNode` in the bucket they are targeting, which redirects lookup requests to the new table.</li>
+    <li>Instead of blocking, these threads cooperate in the resizing process by calling `helpTransfer()`, assisting in copying other buckets to the new table.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="copyonwrite-structures">CopyOnWrite: Snapshot Read Scaling</h2>
+  <p>
+    `CopyOnWriteArrayList` maintains a volatile reference to an array: `private transient volatile Object[] array;`.
+  </p>
+
+  <h3>1. Write-Copy Mechanics</h3>
+  <p>
+    Any mutative operation (`add`, `set`, `remove`) uses an exclusive lock to perform the following steps:
+  </p>
+  <ol>
+    <li>Copy the existing array to a new, larger array.</li>
+    <li>Apply the modification to the new array copy.</li>
+    <li>Point the volatile `array` reference to the new array.</li>
+    <li>Release the lock.</li>
+  </ol>
+  <pre style={{ background: '#1a1b26', padding: '16px', borderRadius: '8px', overflowX: 'auto', color: '#e2e8f0', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+{`// Simplified representation of CopyOnWriteArrayList write
+public boolean add(E e) {
+    synchronized (lock) {
+        Object[] es = getArray();
+        int len = es.length;
+        Object[] newElements = Arrays.copyOf(es, len + 1);
+        newElements[len] = e;
+        setArray(newElements);
+        return true;
+    }
+}`}
+  </pre>
+
+  <h3>2. Lock-Free Snapshot Reads</h3>
+  <p>
+    Read operations do not acquire locks. They read from the current array reference. Because the array is never modified in place, readers can iterate over the snapshot safely without encountering a `ConcurrentModificationException` or needing lock protection.
+  </p>
+  <p>
+    <strong>Suitability:</strong> This structure is ideal for read-heavy, write-rare scenarios (e.g. system configurations, listener arrays). It is inefficient for frequent writes due to the overhead of copying the entire array.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="blocking-queues">BlockingQueues: Coordinator Hand-offs</h2>
+  <p>
+    `BlockingQueue` implementations are designed for producer-consumer pipelines, blocking threads when the queue is full or empty.
+  </p>
+
+  <h3>1. ArrayBlockingQueue vs. LinkedBlockingQueue</h3>
+  <ul>
+    <li>
+      <strong>`ArrayBlockingQueue` (Bounded):</strong> Backed by a fixed-size array. It uses a **single lock** (`ReentrantLock`) to coordinate both reads and writes. This means producers and consumers block each other, which can limit throughput in high-contention systems.
+    </li>
+    <li>
+      <strong>`LinkedBlockingQueue` (Optionally Bounded):</strong> Backed by linked nodes. It uses a **two-lock** algorithm, maintaining separate locks for takes (`takeLock`) and puts (`putLock`). This allows a producer and a consumer to operate concurrently, increasing throughput.
+    </li>
+  </ul>
+
+  <h3>2. SynchronousQueue & ConcurrentLinkedQueue</h3>
+  <ul>
+    <li>
+      <strong>`SynchronousQueue` (Zero Capacity):</strong> A handoff queue where each insert must wait for a corresponding take. It holds no elements, acting as a direct transfer mechanism between threads.
+    </li>
+    <li>
+      <strong>`ConcurrentLinkedQueue` (Lock-Free):</strong> A non-blocking FIFO queue backed by linked nodes. It uses CAS instructions instead of locks, making it ideal for high-throughput, non-blocking producer-consumer scenarios.
+    </li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    The playbook below covers thread-safe composite operations in `ConcurrentHashMap`, producer-consumer handoffs with `LinkedBlockingQueue`, and config caching with `CopyOnWriteArrayList`.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="ConcurrentHashMap" lang="java" code={`import java.util.concurrent.ConcurrentHashMap;
+
+public class ConcurrentHashMapPlaybook {
+    private final ConcurrentHashMap<String, Integer> wordCounts = new ConcurrentHashMap<>();
+
+    // 1. Thread-safe increment using merge
+    public void incrementWordCount(String word) {
+        // Atomic read-modify-write operation
+        wordCounts.merge(word, 1, (oldValue, newValue) -> oldValue + newValue);
+    }
+
+    // 2. Thread-safe computeIfAbsent cache
+    public Integer getOrCompute(String key) {
+        // Computes value atomically if key is missing
+        return wordCounts.computeIfAbsent(key, k -> {
+            System.out.println("Computing value for: " + k);
+            return k.length();
+        });
+    }
+}`} />
+    <CodeTab label="BlockingQueue Pipeline" lang="java" code={`import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+public class ProducerConsumerPipeline {
+    public static void main(String[] args) throws InterruptedException {
+        // Bounded queue with separate take/put locks
+        BlockingQueue<String> pipeline = new LinkedBlockingQueue<>(10);
+
+        // Producer Thread
+        Thread producer = new Thread(() -> {
+            try {
+                for (int i = 1; i <= 5; i++) {
+                    pipeline.put("Task-" + i); // Blocks if queue is full
+                    System.out.println("Produced Task-" + i);
+                    TimeUnit.MILLISECONDS.sleep(100);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        // Consumer Thread
+        Thread consumer = new Thread(() -> {
+            try {
+                while (true) {
+                    String task = pipeline.take(); // Blocks if queue is empty
+                    System.out.println("Consumed: " + task);
+                    if (task.equals("Task-5")) break;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        producer.start();
+        consumer.start();
+        
+        producer.join();
+        consumer.join();
+    }
+}`} />
+    <CodeTab label="CopyOnWrite cache" lang="java" code={`import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class ConfigurationCache {
+    // Volatile array reference
+    private final List<String> ipWhitelist = new CopyOnWriteArrayList<>();
+
+    public void updateWhitelist(List<String> newIPs) {
+        // Replaces entire array under an exclusive lock
+        ipWhitelist.clear();
+        ipWhitelist.addAll(newIPs);
+    }
+
+    public boolean isWhitelisted(String ip) {
+        // Lock-free read operation against the current snapshot
+        return ipWhitelist.contains(ip);
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Concurrent Collections Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>ConcurrentHashMap</th>
+          <th>CopyOnWriteArrayList</th>
+          <th>LinkedBlockingQueue</th>
+          <th>ConcurrentLinkedQueue</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Locking Mechanism</td>
+          <td>Synchronized on bucket head + CAS</td>
+          <td>ReentrantLock on writes, lock-free reads</td>
+          <td>Two locks (putLock & takeLock)</td>
+          <td>Lock-free (CAS pointer updates)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Read Overhead</td>
+          <td>Lock-free (volatile memory)</td>
+          <td>Lock-free (snapshot array)</td>
+          <td>Blocks if empty (blocking read)</td>
+          <td>Lock-free (returns null if empty)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Write Overhead</td>
+          <td>Locks specific bucket head</td>
+          <td>High (copies entire array)</td>
+          <td>Locks putLock</td>
+          <td>Lock-free (CAS retry loop)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Capacity Boundary</td>
+          <td>Dynamic resizing</td>
+          <td>Dynamic resizing</td>
+          <td>Optionally bounded</td>
+          <td>Unbounded</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Best For</td>
+          <td>High-concurrency key-value lookups</td>
+          <td>Read-heavy, write-rare lists</td>
+          <td>Producer-consumer pipelines</td>
+          <td>High-throughput non-blocking queues</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Concurrent collections in Java minimize lock contention to scale multi-threaded applications. Using `ConcurrentHashMap` bucket locks for key-value storage, `CopyOnWriteArrayList` snapshots for read-heavy caches, and `LinkedBlockingQueue` dual-lock structures for pipelines are essential design patterns.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Why is ConcurrentHashMap faster than Hashtable?</strong> Hashtable locks the entire map instance. ConcurrentHashMap uses bucket-level synchronization for writes and lock-free volatile reads, reducing contention.</li>
+      <li><strong>How do write threads cooperate in ConcurrentHashMap?</strong> During resizing, write threads that encounter a `ForwardingNode` cooperate in copying buckets to the new table using `helpTransfer()`.</li>
+      <li><strong>Explain CopyOnWriteArrayList write performance:</strong> Writes copy the backing array under an exclusive lock, making writes expensive. It should only be used when reads vastly outnumber writes.</li>
+      <li><strong>Contrast ArrayBlockingQueue vs LinkedBlockingQueue locks:</strong> ArrayBlockingQueue uses a single lock for both enqueue and dequeue, while LinkedBlockingQueue uses separate locks for takes and puts, allowing concurrent read/write operations.</li>
+      <li><strong>What is a SynchronousQueue?</strong> A zero-capacity queue where each insert waits for a corresponding remove, facilitating direct thread handoffs.</li>
+    </ul>
+  </div>
+</section>

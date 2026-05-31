@@ -1,0 +1,425 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Threads & Sync</span>
+  </div>
+  <h1>Threads & Sync: Monitors, Reentrancy & Volatile Barriers</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master the JVM concurrency model, explore intrinsic monitor locking, volatile CPU visibility barriers, and thread coordination loops.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Concurrency
+    </span>
+    <span className="difficulty-badge difficulty-badge--advanced">Advanced</span>
+  </div>
+</div>
+
+<p>
+  Concurrency allows modern JVM programs to execute tasks in parallel, maximizing multi-core processor usage. However, concurrent execution introduces complexity. Without synchronization, memory visibility delays and instruction reordering can cause threads to see stale or corrupted states.
+</p>
+<p>
+  This guide analyzes Java thread lifecycles, details the mechanics of JVM monitor locks, examines memory visibility barriers enforced by the `volatile` keyword, and breaks down the wait/notify communication pattern.
+</p>
+
+<section className="content-section">
+  <h2 id="threads-overview">Threads & Lifecycle Overview</h2>
+  <p>
+    In Java, concurrency is centered around the `Thread` class. Threads can be created in three ways: extending the `Thread` class, implementing `Runnable` (for tasks without return values), or implementing `Callable` (for tasks that return values via `Future` promises).
+  </p>
+
+  <h3>Thread State Lifecycle</h3>
+  <p>
+    A thread in the JVM exists in one of the following states at any given moment:
+  </p>
+  <ul>
+    <li>**NEW:** Created but not yet started via `thread.start()`.</li>
+    <li>**RUNNABLE:** Operating inside the JVM. It may be executing or waiting for CPU allocation from the OS scheduler.</li>
+    <li>**BLOCKED:** Waiting to acquire an intrinsic monitor lock to enter or re-enter a `synchronized` block/method.</li>
+    <li>**WAITING:** Waiting indefinitely for another thread to perform a signaling action (via `Object.wait()`, `Thread.join()`, or `LockSupport.park()`).</li>
+    <li>**TIMED_WAITING:** Waiting for another thread for up to a specified timeout (via `Thread.sleep(ms)`, `Object.wait(ms)`, or `Thread.join(ms)`).</li>
+    <li>**TERMINATED:** Completed execution of its run loop.</li>
+  </ul>
+
+  {/* ASCII State Flow */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    &nbsp;NEW ──(start)──► RUNNABLE ──(exit run)──► TERMINATED<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▲&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;(acquire monitor)│&nbsp;&nbsp;&nbsp;├─► BLOCKED (waiting for monitor)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(notify) ├───┼─► WAITING (wait/join)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(timeout) └───└─► TIMED_WAITING (sleep/wait with timeout)<br/>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="synchronized-blocks">Synchronization & Object Monitors</h2>
+  <p>
+    Java provides thread synchronization through **intrinsic locks** (also known as **monitor locks**). Every object in Java has an associated monitor lock.
+  </p>
+
+  <h3>1. Lock Scope</h3>
+  <ul>
+    <li><strong>Synchronized Instance Method:</strong> Locks on the `this` object instance.</li>
+    <li><strong>Synchronized Static Method:</strong> Locks on the class object (`YourClass.class`).</li>
+    <li><strong>Synchronized Block:</strong> Allows locking on a specific target object. This is preferred because it keeps lock scopes minimal, reducing contention.</li>
+  </ul>
+
+  <h3>2. Intrinsic Lock Reentrancy</h3>
+  <p>
+    Java locks are **reentrant**. If a thread already holds a lock on an object, it can acquire that lock again without deadlocking itself.
+  </p>
+  <p>
+    The JVM manages this by keeping a **recursion count** and a reference to the owning thread inside the object's monitor. When the owning thread re-enters a synchronized block on the same object, the count increments. When it exits the block, the count decrements. The lock is released only when the count reaches zero.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="volatile-visibility">Volatile: Visibility & CPU Barriers</h2>
+  <p>
+    To understand the `volatile` keyword, we must examine how modern CPU hardware handles variables. 
+  </p>
+  <p>
+    CPUs have multiple cores, each with its own L1/L2 caches and registers. When a thread reads a variable, the core may copy it into L1 cache for speed. If Core A updates a variable, the update is not immediately written to main memory, meaning Core B continues to read a stale cached value. This is the **visibility problem**.
+  </p>
+
+  <h3>1. Visibility Guarantee</h3>
+  <p>
+    Declaring a variable as `volatile` establishes a **happens-before** relationship. It guarantees that:
+  </p>
+  <ul>
+    <li>**Writes:** Any write to a volatile variable is immediately flushed to main memory.</li>
+    <li>**Reads:** Any read of a volatile variable bypasses CPU caches and reads directly from main memory.</li>
+  </ul>
+
+  <h3>2. Memory Barriers (Fences)</h3>
+  <p>
+    The JIT compiler and CPUs reorder instructions to optimize performance, provided the result remains consistent in a single-threaded context. 
+  </p>
+  <p>
+    Volatile prevents this by inserting hardware-level **Memory Barriers** (Instruction Fences) around writes and reads. This prevents operations before the barrier from being reordered with operations after it, preserving execution order across threads.
+  </p>
+
+  <h3>3. Volatile does NOT guarantee Atomicity</h3>
+  <Callout type="warning">
+    <strong>Volatile vs Atomic:</strong> Volatile only guarantees visibility, not atomicity. For example, a write operation like `count++` is not atomic. It involves three steps: reading the value, incrementing it, and writing it back. If two threads execute `count++` concurrently on a volatile variable, they can read the same initial value and overwrite each other's increments, resulting in data loss. For atomic modifications, use `AtomicInteger` or explicit locks.
+  </Callout>
+</section>
+
+<section className="content-section">
+  <h2 id="thread-communication">Thread Communication: Wait & Notify</h2>
+  <p>
+    Threads coordinate using the `wait()`, `notify()`, and `notifyAll()` methods defined on the `Object` class. These methods must only be called when the thread holds the monitor lock of the object they are invoked on; otherwise, an `IllegalMonitorStateException` is thrown.
+  </p>
+
+  <h3>The Bounded Condition Check Loop</h3>
+  <p>
+    A thread should never check wait conditions using an `if` statement. It must always check the condition inside a `while` loop:
+  </p>
+
+```java
+// CORRECT PATTERN
+synchronized (lock) {
+    while (!condition) {
+        lock.wait(); // Releases lock, suspends thread until notified
+    }
+    // Condition is met; perform task
+}
+```
+
+  <p>
+    <strong>Why a loop is mandatory:</strong>
+  </p>
+  <ul>
+    <li>
+      <strong>Spurious Wakeups:</strong> A thread can wake up from a wait state without being notified by a signal. If check logic is wrapped in an `if` block, the thread will proceed to execute even if the condition is false, leading to state corruption.
+    </li>
+    <li>
+      <strong>Condition Changes:</strong> In the time between a thread being notified and it re-acquiring the lock, another thread may acquire the lock first and change the condition back. A loop forces the thread to re-verify the condition before executing.
+    </li>
+    <li>
+      <strong>Lost Wakeups:</strong> If a signal is sent before a thread is waiting, the signal is lost. Checking the condition in a loop before calling `wait()` prevents the thread from waiting if the condition is already met.
+    </li>
+  </ul>
+
+  <h3>Notify vs. NotifyAll</h3>
+  <ul>
+    <li>`notify()` wakes up a single, arbitrary thread waiting on the object's monitor. If the wrong thread is awakened (e.g., a producer when a producer should be asleep), it may see the condition is not met, go back to sleep, and leave all threads blocked (deadlock).</li>
+    <li>`notifyAll()` wakes up all waiting threads. While this has a slightly higher overhead, it is safer because it guarantees that the thread capable of making progress is awakened.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    The playbook below covers thread creation models, visibility errors, and a classic Producer-Consumer implementation using `wait()` and `notifyAll()`.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Visibility Bug Demo" lang="java" code={`import java.util.concurrent.TimeUnit;
+
+public class VolatileVisibilityBug {
+    // Try toggling the 'volatile' keyword to see the visibility difference!
+    private static volatile boolean running = true;
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread worker = new Thread(() -> {
+            long count = 0;
+            while (running) {
+                count++; // Without volatile, this loop might never terminate!
+            }
+            System.out.println("Worker stopped. Loops executed: " + count);
+        });
+
+        worker.start();
+        
+        TimeUnit.SECONDS.sleep(1);
+        System.out.println("Main thread signaling stop...");
+        running = false; // Main thread changes state
+        
+        worker.join();
+        System.out.println("Program finished.");
+    }
+}`} />
+    <CodeTab label="Producer-Consumer Buffer" lang="java" code={`import java.util.LinkedList;
+import java.util.Queue;
+
+public class BoundedBuffer<T> {
+    private final Queue<T> queue = new LinkedList<>();
+    private final int capacity;
+
+    public BoundedBuffer(int capacity) {
+        this.capacity = capacity;
+    }
+
+    // 1. Thread-safe Producer
+    public synchronized void put(T item) throws InterruptedException {
+        // ALWAYS check condition inside a loop, not an IF statement!
+        while (queue.size() == capacity) {
+            System.out.println(Thread.currentThread().getName() + " buffer full, waiting...");
+            wait(); // Releases lock, enters WAITING state
+        }
+        
+        queue.add(item);
+        System.out.println(Thread.currentThread().getName() + " produced: " + item);
+        
+        // Notify all waiting threads (consumers and producers)
+        notifyAll(); 
+    }
+
+    // 2. Thread-safe Consumer
+    public synchronized T take() throws InterruptedException {
+        // Loop checks if empty to prevent spurious wakeups
+        while (queue.isEmpty()) {
+            System.out.println(Thread.currentThread().getName() + " buffer empty, waiting...");
+            wait();
+        }
+
+        T item = queue.poll();
+        System.out.println(Thread.currentThread().getName() + " consumed: " + item);
+        
+        notifyAll();
+        return item;
+    }
+}`} />
+    <CodeTab label="Callable & Futures" lang="java" code={`import java.util.concurrent.*;
+
+public class CallableFuturePlaybook {
+    public static void main(String[] args) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        // Callable returns a value and can throw checked exceptions
+        Callable<Integer> computeTask = () -> {
+            System.out.println("Computing result on " + Thread.currentThread().getName());
+            TimeUnit.MILLISECONDS.sleep(500);
+            return 42;
+        };
+
+        // Submit returns a Future promise
+        Future<Integer> futureResult = executor.submit(computeTask);
+
+        // Blocks until completion
+        Integer result = futureResult.get();
+        System.out.println("Result received: " + result);
+
+        executor.shutdown();
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Concurrency Constructs Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>synchronized</th>
+          <th>volatile</th>
+          <th>ReentrantLock</th>
+          <th>AtomicInteger</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Operation Scope</td>
+          <td>Methods or code blocks</td>
+          <td>Single fields</td>
+          <td>Explicit code blocks</td>
+          <td>Single fields (variables)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Thread Safety</td>
+          <td>Yes (Mutual Exclusion)</td>
+          <td>Visibility only</td>
+          <td>Yes (Mutual Exclusion)</td>
+          <td>Yes (Atomic modifications)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Allows wait/notify?</td>
+          <td>Yes (via Object monitor)</td>
+          <td>No</td>
+          <td>Yes (via Condition variables)</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Underlying Mechanism</td>
+          <td>Object monitor monitors</td>
+          <td>Memory barriers (main memory)</td>
+          <td>AQS (AbstractQueuedSynchronizer)</td>
+          <td>CAS (Compare-And-Swap) hardware instructions</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Lock-Free?</td>
+          <td>No (Blocking lock)</td>
+          <td>Yes</td>
+          <td>No (Blocking lock)</td>
+          <td>Yes (Spin lock retry)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Timeout Support</td>
+          <td>No (Blocks indefinitely)</td>
+          <td>N/A</td>
+          <td>Yes (`tryLock` with timeout)</td>
+          <td>N/A</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Understanding how the JVM interacts with CPU caches and intrinsic monitor locks is essential for writing thread-safe Java programs. Relying on `volatile` for visibility barriers, using synchronized locks for mutual exclusion, and checking wait states in loops are fundamental principles of JVM concurrency.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Why must wait() be called inside a while loop?</strong> To protect against spurious wakeups (where a thread wakes up without receiving a notification) and lost wakeups.</li>
+      <li><strong>What is lock reentrancy?</strong> The ability for a thread holding a lock to acquire it again on the same object without deadlocking, managed by an internal recursion counter.</li>
+      <li><strong>Does volatile make code thread-safe?</strong> No, it only guarantees memory visibility and prevents instruction reordering. It does not ensure atomicity for multi-step updates (like `count++`).</li>
+      <li><strong>When should you use notifyAll() over notify()?</strong> Always prefer `notifyAll()`. `notify()` only wakes up one arbitrary thread, which can lead to deadlocks if the woken thread goes back to sleep without waking others.</li>
+      <li><strong>What are the thread states?</strong> Memorize: NEW, RUNNABLE, BLOCKED (waiting for lock), WAITING, TIMED_WAITING, and TERMINATED.</li>
+    </ul>
+  </div>
+</section>

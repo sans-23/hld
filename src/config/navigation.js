@@ -112,9 +112,9 @@ export const JAVA_SECTIONS = [
     defaultExpanded: false,
     items: [
       { id: 'java-threads', label: 'Threads & Sync', href: '/java-threads', status: 'default' },
-      { id: 'java-locks', label: 'Locks & CAS', href: '/java-locks', status: 'locked' },
-      { id: 'java-concurrent-collections', label: 'Concurrent Collections', href: '/java-concurrent-collections', status: 'locked' },
-      { id: 'java-virtual-threads', label: 'Virtual Threads', href: '/java-virtual-threads', status: 'locked' },
+      { id: 'java-locks', label: 'Locks & CAS', href: '/java-locks', status: 'default' },
+      { id: 'java-concurrent-collections', label: 'Concurrent Collections', href: '/java-concurrent-collections', status: 'default' },
+      { id: 'java-virtual-threads', label: 'Virtual Threads', href: '/java-virtual-threads', status: 'default' },
     ],
   },
   {

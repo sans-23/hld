@@ -1,0 +1,451 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Locks & CAS</span>
+  </div>
+  <h1>Locks & CAS: AQS Engine, StampedLock & Atomic Spins</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Explore lock-free atomic concurrency, the mechanics of AbstractQueuedSynchronizer (AQS), ReentrantLock condition queues, and StampedLock optimistic reads.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Concurrency
+    </span>
+    <span className="difficulty-badge difficulty-badge--advanced">Advanced</span>
+  </div>
+</div>
+
+<p>
+  Traditional synchronization relies on OS-level monitor locks, which suspend threads when blocked. This introduces significant context-switching overhead. To scale high-throughput concurrent applications, Java utilizes hardware-supported, lock-free primitives alongside optimized synchronizers.
+</p>
+<p>
+  This guide analyzes the mechanics of **Compare-And-Swap (CAS)**, details the design of the **AbstractQueuedSynchronizer (AQS)** engine, examines explicit locks like `ReentrantLock`, and demonstrates performance tuning via `StampedLock` optimistic reads.
+</p>
+
+<section className="content-section">
+  <h2 id="cas-mechanics">CAS: Optimistic Lock-Free Concurrency</h2>
+  <p>
+    **Compare-And-Swap (CAS)** is an optimistic concurrency control mechanism that operates at the hardware level. Rather than blocking other threads to update a variable, a thread attempts the update lock-free, spinning and retrying if another thread modifies the variable first.
+  </p>
+  <p>
+    CAS operations accept three arguments:
+  </p>
+  <ul>
+    <li>Memory Location (`V`): The physical memory address of the variable.</li>
+    <li>Expected Old Value (`A`): The value the thread believes is currently at address `V`.</li>
+    <li>New Value (`B`): The value the thread wishes to write to address `V`.</li>
+  </ul>
+  <p>
+    The CPU updates `V` to `B` if and only if the current value at `V` equals `A` (atomic execution). Modern processors compile this directly to single assembly-level instructions (e.g. `cmpxchg` on x86 architectures), which bypasses kernel locks.
+  </p>
+
+  <h3>The ABA Problem</h3>
+  <p>
+    A classic challenge with CAS is the **ABA problem**:
+  </p>
+  <ol>
+    <li>Thread 1 reads variable value `A` from memory.</li>
+    <li>Thread 2 preempts Thread 1, updates the value from `A` to `B`, and then changes it back to `A`.</li>
+    <li>Thread 1 resumes, executes CAS expecting `A`, sees `A`, and succeeds.</li>
+  </ol>
+  <p>
+    Although the value appears unchanged to Thread 1, the state was modified. This can lead to issues in pointer-linked structures, such as nodes being reallocated.
+  </p>
+  <p>
+    <strong>Solution:</strong> Use version stamping. Java provides `AtomicStampedReference`, which pairs the object reference with an integer stamp (version number). The CAS operation succeeds only if both the reference and the stamp match the expected values.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="aqs-internals">AQS: The Engine Behind Java Locks</h2>
+  <p>
+    The **AbstractQueuedSynchronizer (AQS)** class is the foundation of Java's lock framework. It is used to implement synchronizers like `ReentrantLock`, `Semaphore`, `CountDownLatch`, and `ReentrantReadWriteLock`.
+  </p>
+
+  <h3>AQS Core Components</h3>
+  <ul>
+    <li>
+      <strong>Volatile State:</strong> A single 32-bit integer, `private volatile int state`, representing lock ownership status.
+      <ul>
+        <li>For `ReentrantLock`: `0` indicates unlocked, while `1` or greater represents locked (supporting nested reentrant locks).</li>
+        <li>For `Semaphore`: Represents the number of available permits.</li>
+        <li>For `CountDownLatch`: Represents the current countdown gate value.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>CLH FIFO Wait Queue:</strong> A doubly-linked list of `Node` elements holding blocked threads.
+    </li>
+  </ul>
+
+  {/* AQS Layout Visual */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>AQS Structure:</span><br/>
+    ├── [volatile int state] (Updates via CAS: compareAndSetState)<br/>
+    └── [CLH Queue] (Doubly-Linked List)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;[Head Node] &lt;──► [Blocked Thread Node] &lt;──► [Tail Node]<br/>
+  </div>
+
+  <h3>Lock Acquisition Mechanics</h3>
+  <ol>
+    <li>A thread attempts to acquire the lock by executing CAS to change `state` (e.g. from 0 to 1).</li>
+    <li>If CAS succeeds, the thread sets itself as the lock owner and proceeds.</li>
+    <li>If CAS fails (indicating the lock is held), the thread is wrapped in a `Node` and appended to the tail of the CLH queue.</li>
+    <li>Once queued, the thread is suspended using `LockSupport.park()`, which puts it into the `WAITING` or `BLOCKED` state.</li>
+    <li>When the lock owner releases it, it resets the `state` via volatile write and calls `LockSupport.unpark()` on the successor thread at the head of the queue.</li>
+  </ol>
+</section>
+
+<section className="content-section">
+  <h2 id="reentrantlock-features">ReentrantLock: Beyond synchronized</h2>
+  <p>
+    `ReentrantLock` implements the `Lock` interface, providing explicit lock control as an alternative to implicit `synchronized` blocks.
+  </p>
+  
+  <p>
+    <strong>Key features of ReentrantLock:</strong>
+  </p>
+  <ul>
+    <li>
+      <strong>Fairness Policies:</strong> A `synchronized` block does not guarantee acquisition order, which can lead to thread starvation. `ReentrantLock` supports an optional fairness parameter:
+      <br/>
+      `new ReentrantLock(true)`
+      <br/>
+      Fair locks grant access to the longest-waiting thread. Note that this reduces throughput due to the extra tracking overhead.
+    </li>
+    <li>
+      <strong>Non-blocking lock attempts:</strong> Using `tryLock()`, a thread can attempt lock acquisition. If the lock is held, it returns `false` immediately instead of blocking, allowing the thread to perform other tasks.
+    </li>
+    <li>
+      <strong>Interruptible Locks:</strong> A thread waiting for a lock via `lockInterruptibly()` can be interrupted from its waiting state, throwing an `InterruptedException`.
+    </li>
+    <li>
+      <strong>Multiple Condition Queues:</strong> `synchronized` provides only a single wait queue per object (via `wait()` and `notify()`). `ReentrantLock` allows creating multiple `Condition` objects:
+      <br/>
+      `Condition notFull = lock.newCondition();`
+      <br/>
+      This enables separating producer and consumer wait queues, allowing `signal()` to target specific thread groups.
+    </li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="stampedlock-optimistic">StampedLock: Optimistic Read Scaling</h2>
+  <p>
+    While `ReentrantReadWriteLock` improves performance by allowing multiple concurrent readers, it has a drawback: if readers are constant, writers can be starved indefinitely.
+  </p>
+  <p>
+    To address this, Java 8 introduced `StampedLock`. It supports three lock modes: Write, Read, and **Optimistic Read**.
+  </p>
+
+  <h3>Optimistic Reading Mechanics</h3>
+  <p>
+    Unlike standard read locks, an optimistic read does not acquire a shared lock. It does not write to a volatile state or block other threads. Instead, it reads a version stamp:
+  </p>
+
+```java
+long stamp = lock.tryOptimisticRead(); // Returns stamp, does not block writers
+// Read fields into local variables
+if (!lock.validate(stamp)) { // Check if a write occurred since reading the stamp
+    stamp = lock.readLock(); // Fallback: acquire a blocking read lock
+    try {
+        // Read fields again safely
+    } finally {
+        lock.unlockRead(stamp);
+    }
+}
+```
+
+  <p>
+    If `validate(stamp)` returns true, no write occurred during the read, and the local variables are safe to use. If a write did occur, the validation fails, and the thread falls back to acquiring a blocking read lock.
+  </p>
+  <p>
+    This pattern eliminates read lock contention in read-heavy, write-light workloads.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    Below are playbooks for Compare-And-Swap loops, bounded buffers using `ReentrantLock` conditions, and `StampedLock` optimistic read validation.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="CAS Spin Loop" lang="java" code={`import java.util.concurrent.atomic.AtomicInteger;
+
+public class CASSpinCounter {
+    private final AtomicInteger value = new AtomicInteger(0);
+
+    public void increment() {
+        int oldValue;
+        int newValue;
+        // Spin lock loop (optimistic CAS retry)
+        do {
+            oldValue = value.get();
+            newValue = oldValue + 1;
+        } while (!value.compareAndSet(oldValue, newValue)); // CAS check
+    }
+
+    public int getValue() {
+        return value.get();
+    }
+}`} />
+    <CodeTab label="ReentrantLock Bounded Buffer" lang="java" code={`import java.util.LinkedList;
+import java.util.Queue;
+import java.util.locks.Condition;
+import java.util.locks.Lock;
+import java.util.locks.ReentrantLock;
+
+public class BoundedLockBuffer<T> {
+    private final Queue<T> queue = new LinkedList<>();
+    private final int capacity;
+    
+    private final Lock lock = new ReentrantLock();
+    // Dual condition variables bound to the same lock instance
+    private final Condition notFull = lock.newCondition();
+    private final Condition notEmpty = lock.newCondition();
+
+    public BoundedLockBuffer(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public void put(T item) throws InterruptedException {
+        lock.lock();
+        try {
+            while (queue.size() == capacity) {
+                notFull.await(); // Producer waits on notFull condition
+            }
+            queue.add(item);
+            // Signal only consumer threads waiting on notEmpty
+            notEmpty.signal(); 
+        } finally {
+            lock.unlock(); // Ensure lock is released in finally block
+        }
+    }
+
+    public T take() throws InterruptedException {
+        lock.lock();
+        try {
+            while (queue.isEmpty()) {
+                notEmpty.await(); // Consumer waits on notEmpty condition
+            }
+            T item = queue.poll();
+            // Signal producer threads waiting on notFull
+            notFull.signal(); 
+            return item;
+        } finally {
+            lock.unlock();
+        }
+    }
+}`} />
+    <CodeTab label="StampedLock Read/Write" lang="java" code={`import java.util.locks.StampedLock;
+
+public class Point2D {
+    private double x, y;
+    private final StampedLock lock = new StampedLock();
+
+    public void move(double deltaX, double deltaY) {
+        long stamp = lock.writeLock(); // Acquire exclusive write lock
+        try {
+            x += deltaX;
+            y += deltaY;
+        } finally {
+            lock.unlockWrite(stamp);
+        }
+    }
+
+    // High performance read using StampedLock Optimistic Validation
+    public double distanceFromOrigin() {
+        long stamp = lock.tryOptimisticRead(); // Non-blocking stamp read
+        double currentX = x;
+        double currentY = y;
+        
+        // Validate if a write occurred during the read
+        if (!lock.validate(stamp)) {
+            stamp = lock.readLock(); // Fallback to standard blocking read lock
+            try {
+                currentX = x;
+                currentY = y;
+            } finally {
+                lock.unlockRead(stamp);
+            }
+        }
+        return Math.sqrt(currentX * currentX + currentY * currentY);
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Lock Implementations Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>synchronized</th>
+          <th>ReentrantLock</th>
+          <th>ReentrantReadWriteLock</th>
+          <th>StampedLock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Lock Mode</td>
+          <td>Exclusive only</td>
+          <td>Exclusive only</td>
+          <td>Shared (read) / Exclusive (write)</td>
+          <td>Read / Write / Optimistic Read</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Reentrancy</td>
+          <td>Yes</td>
+          <td>Yes</td>
+          <td>Yes</td>
+          <td>No (Not reentrant; danger of self-deadlock)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Interruptible?</td>
+          <td>No</td>
+          <td>Yes</td>
+          <td>Yes</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Fairness Option</td>
+          <td>No</td>
+          <td>Yes (fair/unfair)</td>
+          <td>Yes (fair/unfair)</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Condition Support</td>
+          <td>Yes (single wait set)</td>
+          <td>Yes (multiple Condition sets)</td>
+          <td>Yes (multiple Condition sets)</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Best For</td>
+          <td>Simple blocking, low contention</td>
+          <td>Advanced blocking, fair lock requirements</td>
+          <td>Read-heavy blocking</td>
+          <td>Read-heavy, write-light optimistic scaling</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Java's explicit locks build on hardware Compare-And-Swap primitives and the AbstractQueuedSynchronizer framework. Using ReentrantLock for condition queues and StampedLock to eliminate read lock contention are key patterns for scaling concurrent applications.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>What is AQS?</strong> The AbstractQueuedSynchronizer is a framework that uses a volatile state integer and a FIFO queue of blocked threads to implement locks and synchronizers.</li>
+      <li><strong>Explain the ABA problem and its solution:</strong> The ABA problem occurs when a value changes from A to B and back to A, making it appear unchanged to a CAS operation. The solution is version stamping (e.g., using `AtomicStampedReference`).</li>
+      <li><strong>How do ReentrantLock Conditions work?</strong> They allow creating multiple distinct wait sets on a single lock, allowing threads to target specific notification queues (e.g., separating `notEmpty` and `notFull` signals).</li>
+      <li><strong>What is StampedLock optimistic reading?</strong> A non-blocking read mode that reads a version stamp without acquiring a lock. It validates the stamp afterwards, falling back to a standard read lock only if a write occurred during the read.</li>
+      <li><strong>Is StampedLock reentrant?</strong> No, StampedLock is not reentrant. Attempting to acquire a lock you already hold will result in a deadlock.</li>
+    </ul>
+  </div>
+</section>

@@ -35,6 +35,10 @@ import JavaQueue from '../content/articles/java-queue.mdx';
 import JavaStack from '../content/articles/java-stack.mdx';
 import JavaList from '../content/articles/java-list.mdx';
 import JavaSet from '../content/articles/java-set.mdx';
+import JavaThreads from '../content/articles/java-threads.mdx';
+import JavaLocks from '../content/articles/java-locks.mdx';
+import JavaConcurrentCollections from '../content/articles/java-concurrent-collections.mdx';
+import JavaVirtualThreads from '../content/articles/java-virtual-threads.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -76,6 +80,10 @@ export default function MainContent() {
     if (articleId === 'java-stack') return <JavaStack />;
     if (articleId === 'java-list') return <JavaList />;
     if (articleId === 'java-set') return <JavaSet />;
+    if (articleId === 'java-threads') return <JavaThreads />;
+    if (articleId === 'java-locks') return <JavaLocks />;
+    if (articleId === 'java-concurrent-collections') return <JavaConcurrentCollections />;
+    if (articleId === 'java-virtual-threads') return <JavaVirtualThreads />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;
