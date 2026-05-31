@@ -4,6 +4,7 @@ import TopNav from './components/TopNav';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MainContent from './components/MainContent';
+import Home from './components/Home';
 import NotFound from './components/NotFound';
 import './index.css';
 
@@ -22,9 +23,9 @@ function App() {
       <TopNav onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <div className="main-layout">
         <div className={`mobile-backdrop ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(false)} />
-        <LeftSidebar isOpen={isMobileMenuOpen} />
+        {location.pathname !== '/' && <LeftSidebar isOpen={isMobileMenuOpen} />}
         <Routes>
-          <Route path="/" element={<Navigate to="/networking" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/:articleId" element={
             <>
               <MainContent />

@@ -30,6 +30,7 @@ import ScalingReads from '../content/articles/scaling-reads.mdx';
 import ScalingWrites from '../content/articles/scaling-writes.mdx';
 import LargeBlobs from '../content/articles/large-blobs.mdx';
 import LongRunning from '../content/articles/long-running.mdx';
+import JavaCollections from '../content/articles/java-collections.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -66,6 +67,7 @@ export default function MainContent() {
     if (articleId === 'scaling-writes') return <ScalingWrites />;
     if (articleId === 'large-blobs') return <LargeBlobs />;
     if (articleId === 'long-running') return <LongRunning />;
+    if (articleId === 'java-collections') return <JavaCollections />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;

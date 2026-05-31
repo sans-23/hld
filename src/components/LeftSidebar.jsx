@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { SECTIONS, countCompleted } from '../config/navigation';
+import { NavLink, useParams } from 'react-router-dom';
+import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS, getTrackByArticleId, countCompleted } from '../config/navigation';
 import './Sidebar.css';
 
 const ChevronIcon = ({ expanded }) => (
@@ -90,13 +90,19 @@ function SidebarSection({ section }) {
 }
 
 export default function LeftSidebar({ isOpen }) {
-  const { completed, total } = countCompleted(SECTIONS);
-  const percent = Math.round((completed / total) * 100);
+  const { articleId } = useParams();
+  const track = getTrackByArticleId(articleId) || 'system-design';
+
+  const sections = track === 'java' ? JAVA_SECTIONS : SYSTEM_DESIGN_SECTIONS;
+  const brandTitle = track === 'java' ? 'Java Deep Dive' : 'Learn System Design';
+
+  const { completed, total } = countCompleted(sections);
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
     <aside className={`left-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-brand-title" style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '20px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-        Learn System Design
+        {brandTitle}
       </div>
       {/* Progress indicator */}
       <div className="sidebar-progress">
@@ -119,7 +125,7 @@ export default function LeftSidebar({ isOpen }) {
       </div>
 
       {/* Navigation sections */}
-      {SECTIONS.map((section) => (
+      {sections.map((section) => (
         <SidebarSection key={section.id} section={section} />
       ))}
     </aside>

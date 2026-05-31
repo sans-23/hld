@@ -154,6 +154,14 @@ const TOC_BY_ARTICLE = {
     { id: 'comparison-matrix', label: 'Task Processing Matrix' },
     { id: 'conclusion', label: 'Conclusion' },
   ],
+  'java-collections': [
+    { id: 'collections-overview', label: 'Collections Overview' },
+    { id: 'list-interface', label: 'List Implementations' },
+    { id: 'set-interface', label: 'Set Implementations' },
+    { id: 'map-interface', label: 'Map & HashMap Internals' },
+    { id: 'concurrent-collections', label: 'Concurrent & Thread-Safety' },
+    { id: 'summary', label: 'Interview Takeaways' },
+  ],
   'sharding': [
     { id: 'what-is-partitioning', label: 'What is Partitioning?' },
     { id: 'what-is-sharding', label: 'What is Sharding?' },

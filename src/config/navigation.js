@@ -1,4 +1,4 @@
-export const SECTIONS = [
+export const SYSTEM_DESIGN_SECTIONS = [
   {
     id: 'core-concepts',
     title: 'Core Concepts',
@@ -93,6 +93,22 @@ export const SECTIONS = [
   },
 ];
 
+export const JAVA_SECTIONS = [
+  {
+    id: 'java-core',
+    title: 'Java Core',
+    defaultExpanded: true,
+    items: [
+      { id: 'java-collections', label: 'Collections Deep Dive', href: '/java-collections', status: 'default' },
+      { id: 'java-concurrency', label: 'Java Concurrency', href: '/java-concurrency', status: 'locked' },
+      { id: 'java-jvm-memory', label: 'JVM Memory Model', href: '/java-jvm-memory', status: 'locked' },
+      { id: 'java-gc', label: 'Garbage Collection', href: '/java-gc', status: 'locked' },
+    ]
+  }
+];
+
+export const SECTIONS = [...SYSTEM_DESIGN_SECTIONS, ...JAVA_SECTIONS];
+
 export function countCompleted(sections) {
   let completed = 0;
   let total = 0;
@@ -103,6 +119,15 @@ export function countCompleted(sections) {
     }
   }
   return { completed, total };
+}
+
+export function getTrackByArticleId(articleId) {
+  if (!articleId) return null;
+  const isJava = JAVA_SECTIONS.some(section => section.items.some(item => item.id === articleId));
+  if (isJava) return 'java';
+  const isSysDesign = SYSTEM_DESIGN_SECTIONS.some(section => section.items.some(item => item.id === articleId));
+  if (isSysDesign) return 'system-design';
+  return null;
 }
 
 export const VALID_ARTICLE_IDS = SECTIONS.flatMap(section => 
