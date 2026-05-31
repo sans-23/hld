@@ -1,18 +1,55 @@
-/* Minimalist Home Dashboard Styling */
-.home-dashboard {
-  flex: 1;
-  overflow-y: auto;
-  padding: 60px 40px;
-  max-width: 1200px;
-  margin: 0 auto;
+/* High-Fidelity Minimalist Home Dashboard */
+.home-dashboard-wrapper {
+  background-color: #f8fafc; /* Premium light slate-white background */
   width: 100%;
-  background-color: var(--bg-main);
+  min-height: 100%;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
-/* Page Header */
+/* Light Ambient Glow Points in Background */
+.light-ambient-sphere-1 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(41, 154, 141, 0.05) 0%, transparent 70%);
+  top: -100px;
+  left: -150px;
+  pointer-events: none;
+  filter: blur(50px);
+  z-index: 1;
+}
+
+.light-ambient-sphere-2 {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(218, 82, 51, 0.035) 0%, transparent 70%);
+  bottom: -200px;
+  right: -200px;
+  pointer-events: none;
+  filter: blur(60px);
+  z-index: 1;
+}
+
+.home-dashboard {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 60px 40px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+/* Minimal Page Header */
 .home-header {
+  border-bottom: 1px solid rgba(145, 158, 171, 0.12);
+  padding-bottom: 32px;
   margin-bottom: 48px;
-  padding-bottom: 12px;
 }
 
 .home-brand {
@@ -20,8 +57,20 @@
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-bottom: 12px;
+  letter-spacing: 0.15em;
+  margin-bottom: 16px;
+  display: inline-block;
+  position: relative;
+}
+
+.home-brand::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background-color: var(--accent);
 }
 
 .home-header h1 {
@@ -35,12 +84,12 @@
 .home-subtitle {
   font-size: 0.95rem;
   color: var(--text-muted);
-  max-width: 600px;
-  line-height: 1.5;
+  max-width: 620px;
+  line-height: 1.55;
   margin: 0;
 }
 
-/* Sections Grid */
+/* Tracks Grid */
 .home-tracks-section {
   margin-top: 12px;
 }
@@ -52,9 +101,11 @@
   margin-bottom: 48px;
 }
 
-/* Track Cards */
+/* Innovative Minimal Cards */
 .track-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(145, 158, 171, 0.16);
   border-radius: 12px;
   padding: 24px;
@@ -62,7 +113,31 @@
   flex-direction: column;
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.015);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01), 0 1px 2px rgba(0, 0, 0, 0.01);
+}
+
+/* Precise Tech Corners */
+.card-corner {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border: 1.5px solid transparent;
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+
+.card-corner--top-left {
+  top: 12px;
+  left: 12px;
+  border-top-color: rgba(145, 158, 171, 0.25);
+  border-left-color: rgba(145, 158, 171, 0.25);
+}
+
+.card-corner--bottom-right {
+  bottom: 12px;
+  right: 12px;
+  border-bottom-color: rgba(145, 158, 171, 0.25);
+  border-right-color: rgba(145, 158, 171, 0.25);
 }
 
 .track-card-header {
@@ -73,69 +148,83 @@
 }
 
 .track-icon {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Icon theme styling */
+.hld-theme {
+  background-color: rgba(41, 154, 141, 0.06);
+  color: var(--primary);
+}
+
+.java-theme {
+  background-color: rgba(43, 108, 176, 0.06);
+  color: #2b6cb0;
+}
+
+.locked-theme {
+  background-color: rgba(145, 158, 171, 0.06);
+  color: var(--text-muted);
+}
+
+/* SVG Progress Ring */
+.progress-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.hld-ring {
+  color: var(--primary);
+}
+
+.java-ring {
+  color: #2b6cb0;
+}
+
+.progress-ring-label {
+  position: absolute;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lock-indicator {
+  color: rgba(145, 158, 171, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Icon theme colors */
-.hld-theme {
-  background-color: rgba(41, 154, 141, 0.08);
-  color: var(--primary);
-}
-
-.java-theme {
-  background-color: rgba(43, 108, 176, 0.08);
-  color: #2b6cb0;
-}
-
-.locked-theme {
-  background-color: rgba(145, 158, 171, 0.08);
-  color: var(--text-muted);
-}
-
-/* Badges */
-.track-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.badge-active {
-  background-color: rgba(41, 154, 141, 0.08);
-  color: var(--primary);
-}
-
-.badge-locked {
-  background-color: rgba(145, 158, 171, 0.08);
-  color: var(--text-muted);
-}
-
-/* Typography inside card */
+/* Typography */
 .track-title {
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-main);
   margin-bottom: 8px;
+  letter-spacing: -0.01em;
 }
 
 .track-desc {
   font-size: 0.85rem;
   color: var(--text-muted);
-  line-height: 1.45;
+  line-height: 1.5;
   margin-bottom: 24px;
   flex-grow: 1;
 }
 
-/* Footer & Interactivity */
+/* Footer elements */
 .track-footer {
-  border-top: 1px solid rgba(145, 158, 171, 0.12);
+  border-top: 1px solid rgba(145, 158, 171, 0.08);
   padding-top: 16px;
   display: flex;
   justify-content: space-between;
@@ -143,16 +232,21 @@
   margin-top: auto;
 }
 
-.track-progress-info {
-  font-size: 0.75rem;
+.track-stats-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--text-muted);
-  font-weight: 500;
+  background-color: rgba(145, 158, 171, 0.06);
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
-.locked-text {
-  display: flex;
-  align-items: center;
-  color: var(--text-muted);
+.locked-pill {
+  color: rgba(145, 158, 171, 0.6);
+  background-color: transparent;
+  padding: 0;
+  font-style: italic;
+  font-weight: 500;
 }
 
 .track-link {
@@ -162,7 +256,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: color 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .arrow {
@@ -170,15 +264,35 @@
   transition: transform 0.2s ease;
 }
 
-/* Interactive Hover States */
+/* Active Hover Transitions */
 .track-card--active {
   cursor: pointer;
 }
 
 .track-card--active:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   border-color: rgba(41, 154, 141, 0.35);
-  box-shadow: 0 10px 24px rgba(145, 158, 171, 0.08);
+  background: #ffffff;
+  box-shadow: 
+    0 16px 36px rgba(145, 158, 171, 0.12),
+    0 4px 8px rgba(145, 158, 171, 0.02);
+}
+
+.track-card--active:hover .track-icon {
+  transform: scale(1.05);
+}
+
+/* Tech Corner Hover Animation */
+.track-card--active:hover .card-corner--top-left {
+  border-top-color: var(--primary);
+  border-left-color: var(--primary);
+  transform: translate(-3px, -3px);
+}
+
+.track-card--active:hover .card-corner--bottom-right {
+  border-bottom-color: var(--primary);
+  border-right-color: var(--primary);
+  transform: translate(3px, 3px);
 }
 
 .track-card--active:hover .track-link {
@@ -189,12 +303,18 @@
   transform: translateX(3px);
 }
 
+/* Locked Card Styling */
 .track-card--locked {
-  background-color: #fafbfc;
-  opacity: 0.85;
+  background-color: rgba(255, 255, 255, 0.4);
+  opacity: 0.75;
 }
 
-/* Mobile & Tablet Responsiveness */
+.track-card--locked:hover {
+  border-color: rgba(145, 158, 171, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+}
+
+/* Responsive Breakpoints */
 @media (max-width: 768px) {
   .home-dashboard {
     padding: 40px 20px;

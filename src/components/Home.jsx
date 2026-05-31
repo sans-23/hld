@@ -58,11 +58,47 @@ const BehavioralIcon = () => (
 );
 
 const LockIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
+
+// High-fidelity custom progress ring component
+const ProgressRing = ({ completed, total, colorClass }) => {
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const radius = 14;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className={`progress-ring ${colorClass}`}>
+      <svg width="34" height="34" viewBox="0 0 34 34">
+        <circle
+          cx="17"
+          cy="17"
+          r={radius}
+          fill="transparent"
+          stroke="rgba(145, 158, 171, 0.1)"
+          strokeWidth="2.5"
+        />
+        <circle
+          cx="17"
+          cy="17"
+          r={radius}
+          fill="transparent"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform="rotate(-90 17 17)"
+        />
+      </svg>
+      <span className="progress-ring-label">{percent}%</span>
+    </div>
+  );
+};
 
 export default function Home() {
   const navigate = useNavigate();
@@ -71,140 +107,164 @@ export default function Home() {
   const javaStats = countCompleted(JAVA_SECTIONS);
 
   return (
-    <div className="home-dashboard">
-      {/* Minimal Header */}
-      <header className="home-header">
-        <div className="home-brand">ready4interview</div>
-        <h1>Technical Interview Playbooks</h1>
-        <p className="home-subtitle">
-          Curated engineering roadmaps and deep-dive technical articles designed for software developers.
-        </p>
-      </header>
+    <div className="home-dashboard-wrapper">
+      {/* Dynamic ambient color nodes in background */}
+      <div className="light-ambient-sphere-1"></div>
+      <div className="light-ambient-sphere-2"></div>
 
-      {/* Grid Track Selection */}
-      <div className="home-tracks-section">
-        <div className="tracks-grid">
-          
-          {/* System Design (HLD) Card */}
-          <div className="track-card track-card--active" onClick={() => navigate('/networking')}>
-            <div className="track-card-header">
-              <div className="track-icon hld-theme">
-                <HldIcon />
-              </div>
-              <span className="track-badge badge-active">Active</span>
-            </div>
-            <h3 className="track-title">System Design (HLD)</h3>
-            <p className="track-desc">
-              Master distributed architectures, networking, caching, database sharding, and write contention.
-            </p>
-            <div className="track-footer">
-              <div className="track-progress-info">
-                {hldStats.completed}/{hldStats.total} completed
-              </div>
-              <span className="track-link">
-                Explore Track <span className="arrow">→</span>
-              </span>
-            </div>
+      <div className="home-dashboard">
+        {/* Modern Minimal Page Header */}
+        <header className="home-header">
+          <div className="home-brand">
+            <span>ready4interview</span>
           </div>
+          <h1>Technical Interview Playbooks</h1>
+          <p className="home-subtitle">
+            Curated engineering roadmaps and interactive deep-dives designed for system design and language internals.
+          </p>
+        </header>
 
-          {/* Java Deep Dive Card */}
-          <div className="track-card track-card--active" onClick={() => navigate('/java-map')}>
-            <div className="track-card-header">
-              <div className="track-icon java-theme">
-                <JavaIcon />
+        {/* Tracks Grid */}
+        <div className="home-tracks-section">
+          <div className="tracks-grid">
+            
+            {/* System Design (HLD) Card */}
+            <div className="track-card track-card--active" onClick={() => navigate('/networking')}>
+              {/* Modern Tech Corners */}
+              <div className="card-corner card-corner--top-left"></div>
+              <div className="card-corner card-corner--bottom-right"></div>
+
+              <div className="track-card-header">
+                <div className="track-icon hld-theme">
+                  <HldIcon />
+                </div>
+                <ProgressRing completed={hldStats.completed} total={hldStats.total} colorClass="hld-ring" />
               </div>
-              <span className="track-badge badge-active">Active</span>
-            </div>
-            <h3 className="track-title">Java Deep Dive</h3>
-            <p className="track-desc">
-              Master collections, concurrent locks, JVM memory areas, GC execution, and Virtual Threads.
-            </p>
-            <div className="track-footer">
-              <div className="track-progress-info">
-                {javaStats.completed}/{javaStats.total} completed
+              <h3 className="track-title">System Design (HLD)</h3>
+              <p className="track-desc">
+                Master distributed systems, networking layers, caching policies, database sharding, and write contention.
+              </p>
+              <div className="track-footer">
+                <span className="track-stats-pill">
+                  {hldStats.total} Modules Unlocked
+                </span>
+                <span className="track-link">
+                  Explore <span className="arrow">→</span>
+                </span>
               </div>
-              <span className="track-link">
-                Explore Track <span className="arrow">→</span>
-              </span>
             </div>
+
+            {/* Java Deep Dive Card */}
+            <div className="track-card track-card--active" onClick={() => navigate('/java-map')}>
+              {/* Modern Tech Corners */}
+              <div className="card-corner card-corner--top-left"></div>
+              <div className="card-corner card-corner--bottom-right"></div>
+
+              <div className="track-card-header">
+                <div className="track-icon java-theme">
+                  <JavaIcon />
+                </div>
+                <ProgressRing completed={javaStats.completed} total={javaStats.total} colorClass="java-ring" />
+              </div>
+              <h3 className="track-title">Java Deep Dive</h3>
+              <p className="track-desc">
+                Master collections, concurrent locks, JVM memory areas, GC execution, and Virtual Threads.
+              </p>
+              <div className="track-footer">
+                <span className="track-stats-pill">
+                  {javaStats.total} Modules Unlocked
+                </span>
+                <span className="track-link">
+                  Explore <span className="arrow">→</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Low-Level Design Card */}
+            <div className="track-card track-card--locked">
+              <div className="track-card-header">
+                <div className="track-icon locked-theme">
+                  <LldIcon />
+                </div>
+                <div className="lock-indicator">
+                  <LockIcon />
+                </div>
+              </div>
+              <h3 className="track-title">Low-Level Design (LLD)</h3>
+              <p className="track-desc">
+                Design clean object-oriented systems with SOLID design principles, UML patterns, and architectures.
+              </p>
+              <div className="track-footer">
+                <span className="track-stats-pill locked-pill">
+                  Coming Soon
+                </span>
+              </div>
+            </div>
+
+            {/* DSA Card */}
+            <div className="track-card track-card--locked">
+              <div className="track-card-header">
+                <div className="track-icon locked-theme">
+                  <DsaIcon />
+                </div>
+                <div className="lock-indicator">
+                  <LockIcon />
+                </div>
+              </div>
+              <h3 className="track-title">Algorithms (DSA)</h3>
+              <p className="track-desc">
+                Review critical coding interview patterns: dynamic programming, graph traversals, and heaps.
+              </p>
+              <div className="track-footer">
+                <span className="track-stats-pill locked-pill">
+                  Coming Soon
+                </span>
+              </div>
+            </div>
+
+            {/* Database Internals Card */}
+            <div className="track-card track-card--locked">
+              <div className="track-card-header">
+                <div className="track-icon locked-theme">
+                  <DbIcon />
+                </div>
+                <div className="lock-indicator">
+                  <LockIcon />
+                </div>
+              </div>
+              <h3 className="track-title">Database Internals</h3>
+              <p className="track-desc">
+                Master storage engine models (LSM, B-Tree), transaction isolation, indexing, and replication.
+              </p>
+              <div className="track-footer">
+                <span className="track-stats-pill locked-pill">
+                  Coming Soon
+                </span>
+              </div>
+            </div>
+
+            {/* Behavioral Round Card */}
+            <div className="track-card track-card--locked">
+              <div className="track-card-header">
+                <div className="track-icon locked-theme">
+                  <BehavioralIcon />
+                </div>
+                <div className="lock-indicator">
+                  <LockIcon />
+                </div>
+              </div>
+              <h3 className="track-title">Behavioral Round</h3>
+              <p className="track-desc">
+                Learn the STAR method to structure leadership stories, resolve conflicts, and show ownership.
+              </p>
+              <div className="track-footer">
+                <span className="track-stats-pill locked-pill">
+                  Coming Soon
+                </span>
+              </div>
+            </div>
+
           </div>
-
-          {/* Low-Level Design Card */}
-          <div className="track-card track-card--locked">
-            <div className="track-card-header">
-              <div className="track-icon locked-theme">
-                <LldIcon />
-              </div>
-              <span className="track-badge badge-locked">Locked</span>
-            </div>
-            <h3 className="track-title">Low-Level Design (LLD)</h3>
-            <p className="track-desc">
-              Design clean object-oriented systems with SOLID design principles, UML patterns, and architectures.
-            </p>
-            <div className="track-footer">
-              <div className="track-progress-info locked-text">
-                <LockIcon /> Coming Soon
-              </div>
-            </div>
-          </div>
-
-          {/* DSA Card */}
-          <div className="track-card track-card--locked">
-            <div className="track-card-header">
-              <div className="track-icon locked-theme">
-                <DsaIcon />
-              </div>
-              <span className="track-badge badge-locked">Locked</span>
-            </div>
-            <h3 className="track-title">Algorithms (DSA)</h3>
-            <p className="track-desc">
-              Review critical coding interview patterns: dynamic programming, graphs, trees, and heaps.
-            </p>
-            <div className="track-footer">
-              <div className="track-progress-info locked-text">
-                <LockIcon /> Coming Soon
-              </div>
-            </div>
-          </div>
-
-          {/* Database Internals Card */}
-          <div className="track-card track-card--locked">
-            <div className="track-card-header">
-              <div className="track-icon locked-theme">
-                <DbIcon />
-              </div>
-              <span className="track-badge badge-locked">Locked</span>
-            </div>
-            <h3 className="track-title">Database Internals</h3>
-            <p className="track-desc">
-              Master storage engine models (LSM, B-Tree), transaction isolation, indexing, and replication.
-            </p>
-            <div className="track-footer">
-              <div className="track-progress-info locked-text">
-                <LockIcon /> Coming Soon
-              </div>
-            </div>
-          </div>
-
-          {/* Behavioral Round Card */}
-          <div className="track-card track-card--locked">
-            <div className="track-card-header">
-              <div className="track-icon locked-theme">
-                <BehavioralIcon />
-              </div>
-              <span className="track-badge badge-locked">Locked</span>
-            </div>
-            <h3 className="track-title">Behavioral Round</h3>
-            <p className="track-desc">
-              Learn the STAR method to structure leadership stories, resolve conflicts, and show ownership.
-            </p>
-            <div className="track-footer">
-              <div className="track-progress-info locked-text">
-                <LockIcon /> Coming Soon
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
