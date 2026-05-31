@@ -39,6 +39,8 @@ import JavaThreads from '../content/articles/java-threads.mdx';
 import JavaLocks from '../content/articles/java-locks.mdx';
 import JavaConcurrentCollections from '../content/articles/java-concurrent-collections.mdx';
 import JavaVirtualThreads from '../content/articles/java-virtual-threads.mdx';
+import JavaJVM from '../content/articles/java-jvm.mdx';
+import JavaGC from '../content/articles/java-gc.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -84,6 +86,8 @@ export default function MainContent() {
     if (articleId === 'java-locks') return <JavaLocks />;
     if (articleId === 'java-concurrent-collections') return <JavaConcurrentCollections />;
     if (articleId === 'java-virtual-threads') return <JavaVirtualThreads />;
+    if (articleId === 'java-jvm') return <JavaJVM />;
+    if (articleId === 'java-gc') return <JavaGC />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;

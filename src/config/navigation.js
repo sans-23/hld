@@ -122,8 +122,8 @@ export const JAVA_SECTIONS = [
     title: 'JVM Internals',
     defaultExpanded: false,
     items: [
-      { id: 'java-jvm', label: 'JVM Architecture', href: '/java-jvm', status: 'locked' },
-      { id: 'java-gc', label: 'Garbage Collection', href: '/java-gc', status: 'locked' },
+      { id: 'java-jvm', label: 'JVM Architecture', href: '/java-jvm', status: 'default' },
+      { id: 'java-gc', label: 'Garbage Collection', href: '/java-gc', status: 'default' },
     ],
   },
 ];

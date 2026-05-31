@@ -1,0 +1,451 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Garbage Collection</span>
+  </div>
+  <h1>JVM Garbage Collection: Heap Generations, Phases & Collectors</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Analyze Java Virtual Machine garbage collection algorithms, trace memory promotion through heap generations, compare regional G1 compaction with ZGC low-latency colored pointers, and configure tuning options.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      14 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      JVM Internals
+    </span>
+    <span className="difficulty-badge difficulty-badge--advanced">Advanced</span>
+  </div>
+</div>
+
+<p>
+  Garbage Collection (GC) in Java is an automatic memory management process. The JVM uses GC to identify and reclaim unused memory blocks, preventing memory leaks and optimizing physical RAM usage. However, custom tuning is often necessary to prevent long Stop-The-World (STW) pauses that disrupt high-throughput enterprise APIs.
+</p>
+<p>
+  This guide analyzes the Generational Hypothesis, traces promotion thresholds, details mark/sweep/compact algorithms, compares G1 and ZGC mechanisms, and outlines performance tuning flags.
+</p>
+
+<section className="content-section">
+  <h2 id="gc-generations">JVM Heap Generations & Promotion</h2>
+  <p>
+    The JVM heap is structured around the **Weak Generational Hypothesis**: most objects allocated by an application have a very short lifespan (e.g., local variables, short-lived API payloads), while objects that survive initial cycles tend to remain allocated for a long time.
+  </p>
+  
+  <p>
+    To optimize collection sweeps, the heap is split into separate logical spaces:
+  </p>
+
+  {/* ASCII Diagram for Generations */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    &nbsp;&nbsp;┌──────────────────────────────────────────────────────────┐<br/>
+    &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JVM HEAP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;├───────────────────────────────────┬──────────────────────┤<br/>
+    &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Young Generation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;Old Generation&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1/3 Heap)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(2/3 Heap)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;├───────────┬───────────┬───────────┼──────────────────────┤<br/>
+    &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;Eden&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;S0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;S1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tenured&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;(80%)&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;(10%)&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;(10%)&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;└───────────┴───────────┴───────────┴──────────────────────┘
+  </div>
+
+  <h3>1. Young Generation (Eden, S0, S1)</h3>
+  <ul>
+    <li><strong>Eden Space:</strong> New objects are initially allocated here. When Eden fills up, a Minor GC is triggered.</li>
+    <li><strong>Survivor Spaces (S0 / S1 or From / To):</strong> Two equally-sized buffers. At any given time, one survivor space is active (contains live objects) while the other remains completely empty. During a Minor GC, surviving objects from Eden and the active survivor space are copied to the empty survivor space. The roles of the survivor spaces then swap.</li>
+  </ul>
+
+  <h3>2. Old (Tenured) Generation</h3>
+  <ul>
+    <li>Stores long-lived objects that survived multiple Minor GC cycles and reached the promotion threshold.</li>
+    <li>Major GC (or Full GC) cycles clean this space. Old Gen collections generally take longer because the area is much larger and objects are denser.</li>
+  </ul>
+
+  <h3>Promotion Mechanics & Aging</h3>
+  <p>
+    Each object in the Young Generation is assigned an **age counter** (stored in its header's mark word). The counter increments by `1` every time the object survives a Minor GC copy cycle.
+  </p>
+  <ul>
+    <li><strong>MaxTenuringThreshold:</strong> Objects are promoted to the Old Generation when their age reaches the threshold defined by the JVM flag `-XX:MaxTenuringThreshold` (default value is `15`).</li>
+    <li><strong>Dynamic Aging (Tenuring Ratio):</strong> If the cumulative memory size of objects within a Survivor space exceeds the target ratio (configured by `-XX:TargetSurvivorRatio`, default `50%`), the JVM dynamically lowers the tenuring threshold. This promotes older objects to the Old Gen immediately to prevent Survivor space overflows.</li>
+  </ul>
+
+  <h3>GC Categories</h3>
+  <ul>
+    <li><strong>Minor GC:</strong> Fast, local collection confined to the Young Generation. Always pauses application threads (STW), but pause times are negligible due to copying only surviving objects.</li>
+    <li><strong>Major GC:</strong> Reclaims space inside the Old Generation. Often combined with a Full GC.</li>
+    <li><strong>Full GC:</strong> Cleans the entire Heap (Young, Old, and Metaspace). Triggered when the Old Gen fills up, metadata allocations exceed limits, or `System.gc()` is explicitly requested. Full GCs cause long Stop-the-World pauses and degrade performance.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="gc-algorithms">GC Phases: Mark, Sweep & Compact</h2>
+  <p>
+    Garbage collectors reclaim memory using four distinct algorithmic phases: **Identification (GC Roots)**, **Marking**, **Sweeping**, and **Compaction/Copying**.
+  </p>
+
+  <h3>1. GC Roots: Reachability Entrypoints</h3>
+  <p>
+    An object is considered live if it is reachable from any **GC Root**. Roots are references outside the heap that can access heap memory directly:
+  </p>
+  <ul>
+    <li><strong>Thread Stack Frames:</strong> Local variables and parameters within executing method frames.</li>
+    <li><strong>Static Variables:</strong> References declared as static fields within active loaded classes.</li>
+    <li><strong>JNI (Java Native Interface) Handles:</strong> Global and local references created in native C/C++ code.</li>
+    <li><strong>JVM Internal Holds:</strong> Thread-local storage variables, system class loaders, and active thread objects.</li>
+  </ul>
+
+  <h3>2. Algorithmic Phases</h3>
+  
+  <h4>Phase 1: Mark (Tracing Reachability)</h4>
+  <p>
+    The collector starts at the GC Roots and recursively traverses all child references. It sets a bit flag in the header of every visited object to mark it as "live."
+  </p>
+  
+  <h4>Phase 2: Sweep (Reclaiming Memory Slots)</h4>
+  <p>
+    The collector scans the entire heap sequentially. Any block without the "live" bit flag is marked as free. Sweeping is fast but leaves memory **fragmented** with non-contiguous free blocks, making it difficult to allocate large arrays or objects.
+  </p>
+
+  <h4>Phase 3: Compact vs. Copy</h4>
+  <ul>
+    <li>
+      <strong>Compaction (Old Gen):</strong> Eliminates fragmentation by sliding all surviving objects to one end of the memory block, creating a single contiguous free space. This requires updating all references pointing to the moved objects, which increases STW pause times.
+    </li>
+    <li>
+      <strong>Copying (Young Gen):</strong> Copies live objects from a fragmented source space (Eden + S0) to a clean target space (S1), leaving the source empty. This avoids fragmentation entirely and is highly efficient because it scales only with the number of *live* objects, not the size of the heap.
+    </li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="common-collectors">Garbage Collectors: G1 vs ZGC</h2>
+  <p>
+    Modern Java applications use regional and concurrent garbage collectors to minimize pause times while scaling to large heaps.
+  </p>
+
+  <h3>1. Garbage-First (G1) Collector</h3>
+  <p>
+    G1 is the default collector for modern JDKs (JDK 9+). It replaces the traditional rigid heap boundary model with a regional memory layout.
+  </p>
+  <ul>
+    <li><strong>Regional Partitioning:</strong> The heap is divided into thousands of equal-sized blocks (from 1MB to 32MB depending on heap size). Each block is dynamically designated as Eden (**E**), Survivor (**S**), or Old (**O**).</li>
+    <li><strong>Humongous Regions:</strong> Special contiguous blocks designed to hold large objects (exceeding 50% of a standard region size), preventing old-gen copy overhead.</li>
+    <li><strong>Garbage-First Collections:</strong> G1 tracks the volume of dead objects in each region and targets regions with the most garbage first, maximizing reclaimed memory per cycle.</li>
+    <li><strong>SATB (Snapshot-At-The-Beginning):</strong> A write-barrier mechanism that intercepts reference changes during concurrent marking, ensuring objects that were active at the start of the cycle are not prematurely collected.</li>
+    <li><strong>MaxGCPauseMillis:</strong> A tuning flag that guides G1 to adjust young generation sizes dynamically to meet a user-defined pause target (e.g., `-XX:MaxGCPauseMillis=200`).</li>
+  </ul>
+
+  <h3>2. Z Garbage Collector (ZGC)</h3>
+  <p>
+    ZGC is a low-latency, scalable collector designed for large heaps (from megabytes to terabytes) that guarantees sub-millisecond STW pause bounds.
+  </p>
+  <ul>
+    <li><strong>Concurrent Compaction:</strong> Unlike G1, which pauses application threads to relocate objects and update references, ZGC performs object relocation concurrently while application threads are running.</li>
+    <li>
+      <strong>Colored Pointers:</strong> ZGC embeds reference metadata directly into the unused upper bits of 64-bit object references:
+      <ul>
+        <li><code>Marked0</code> / <code>Marked1</code>: Track object reachability.</li>
+        <li><code>Remapped</code>: Indicates the pointer is pointing to the object's new, post-relocation address.</li>
+        <li><code>Finalizable</code>: Tracks objects only reachable via finalizers.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Load Barriers:</strong> JIT-compiled code snippets that intercept pointer dereferences. If a thread attempts to read a reference where the <code>Remapped</code> bit is not set (indicating the object has been relocated but the reference hasn't been updated), the load barrier intercepts the read, fetches the new address from a forwarding table, updates the reference, and returns the correct pointer.
+    </li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="gc-tuning-flags">JVM Flags & Tuning Settings</h2>
+  <p>
+    Tuning JVM memory management requires balancing CPU throughput against maximum latency bounds.
+  </p>
+
+  <h3>GC Selection Flags</h3>
+  <ul>
+    <li>`-XX:+UseG1GC`: Enables the Garbage-First Collector (default on server environments).</li>
+    <li>`-XX:+UseZGC`: Enables the Z Garbage Collector (scalable low-latency).</li>
+    <li>`-XX:+UseParallelGC`: Enables the Parallel Collector (high-throughput batch processing).</li>
+    <li>`-XX:+UseSerialGC`: Enables the Serial Collector (low-footprint CLI apps and small containers).</li>
+  </ul>
+
+  <h3>Memory Sizing Flags</h3>
+  <ul>
+    <li>`-Xms<size>`: Configures initial Heap allocation size (e.g., `-Xms4g`).</li>
+    <li>`-Xmx<size>`: Configures maximum Heap allocation boundary (e.g., `-Xmx4g`). Matching initial and max sizes prevents dynamic heap sizing latency at runtime.</li>
+    <li>`-XX:NewRatio=<value>`: Configures the ratio between Old and Young generation sizes (e.g., `-XX:NewRatio=2` allocates 2/3 of the heap to Old Gen).</li>
+    <li>`-XX:SurvivorRatio=<value>`: Configures the ratio of Eden to Survivor space within Young Gen (e.g., `-XX:SurvivorRatio=8` creates Eden=80%, S0=10%, S1=10%).</li>
+  </ul>
+
+  <h3>Logging & Performance Flags</h3>
+  <ul>
+    <li>`-Xlog:gc*`: Enables unified JVM garbage collection logging (JDK 9+ replacement for `-XX:+PrintGCDetails`).</li>
+    <li>`-XX:MaxGCPauseMillis=<ms>`: Sets a target maximum pause time goal. The GC adjusts generation sizes dynamically to try to meet this limit.</li>
+    <li>`-XX:+DisableExplicitGC`: Disables execution of explicit `System.gc()` calls, preventing developers from manually triggering Full GC cycles in production.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Diagnostics Code</h2>
+  <p>
+    The code templates below demonstrate how to log runtime heap usage, monitor GC pause notifications using JMX, and test the behavior of explicit GC calls.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Heap Memory Inspector" lang="java" code={`public class HeapMemoryInspector {
+    public static void main(String[] args) {
+        Runtime runtime = Runtime.getRuntime();
+        
+        long maxMemory = runtime.maxMemory();       // Max heap capacity (-Xmx)
+        long totalMemory = runtime.totalMemory();   // Currently allocated heap space
+        long freeMemory = runtime.freeMemory();     // Unused space in allocated heap
+        long usedMemory = totalMemory - freeMemory; // Active memory allocations
+        
+        System.out.println("=== JVM Heap Metrics ===");
+        System.out.printf("Max Heap Capacity:   %,d bytes (%.2f MB)%n", 
+                maxMemory, (double) maxMemory / (1024 * 1024));
+        System.out.printf("Allocated Heap:      %,d bytes (%.2f MB)%n", 
+                totalMemory, (double) totalMemory / (1024 * 1024));
+        System.out.printf("Used Heap Space:     %,d bytes (%.2f MB)%n", 
+                usedMemory, (double) usedMemory / (1024 * 1024));
+        System.out.printf("Free Heap Space:     %,d bytes (%.2f MB)%n", 
+                freeMemory, (double) freeMemory / (1024 * 1024));
+    }
+}`} />
+    <CodeTab label="JMX GC Listener" lang="java" code={`import java.lang.management.ManagementFactory;
+import java.lang.management.GarbageCollectorMXBean;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationListener;
+import javax.management.openmbean.CompositeData;
+import java.util.List;
+
+public class ProgrammaticGCLogger {
+    public static void registerGCNotifications() {
+        List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        
+        for (GarbageCollectorMXBean gcBean : gcBeans) {
+            NotificationEmitter emitter = (NotificationEmitter) gcBean;
+            
+            NotificationListener listener = (notification, handback) -> {
+                // Intercept GC Notification events
+                if (notification.getType().equals("com.sun.management.gc.notification")) {
+                    CompositeData userData = (CompositeData) notification.getUserData();
+                    
+                    // Extract GC action metrics
+                    String gcName = (String) userData.get("gcName");
+                    String gcAction = (String) userData.get("gcAction");
+                    String gcCause = (String) userData.get("gcCause");
+                    
+                    // GcInfo contains execution duration in milliseconds
+                    CompositeData gcInfo = (CompositeData) userData.get("gcInfo");
+                    long duration = (Long) gcInfo.get("duration");
+                    
+                    System.out.printf("[GC ALERT] Collector: %s | Action: %s | Cause: %s | Duration: %d ms%n",
+                            gcName, gcAction, gcCause, duration);
+                }
+            };
+            
+            emitter.addNotificationListener(listener, null, null);
+        }
+        System.out.println("JMX Garbage Collection listeners initialized successfully.");
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        registerGCNotifications();
+        
+        // Generate temporary garbage arrays to trigger GC cycles
+        System.out.println("Generating garbage allocations...");
+        for (int i = 0; i < 50; i++) {
+            byte[] garbage = new byte[10 * 1024 * 1024]; // 10MB chunk
+            Thread.sleep(100);
+        }
+    }
+}`} />
+    <CodeTab label="Explicit GC Risks" lang="java" code={`public class ExplicitGCRunner {
+    public static void main(String[] args) {
+        System.out.println("Starting task execution...");
+        
+        // Explicitly requesting garbage collection
+        System.out.println("Suggesting JVM GC cleanup...");
+        long start = System.currentTimeMillis();
+        System.gc(); // Triggers a Full GC (STW) in default JVM configurations
+        long duration = System.currentTimeMillis() - start;
+        
+        System.out.printf("System.gc() invocation completed in %d ms.%n", duration);
+        System.out.println("Note: Avoid explicit System.gc() calls. Use -XX:+DisableExplicitGC to ignore them.");
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Garbage Collectors Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Serial GC</th>
+          <th>Parallel GC</th>
+          <th>G1 GC</th>
+          <th>ZGC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Thread Model</td>
+          <td>Single-Threaded</td>
+          <td>Multi-Threaded</td>
+          <td>Multi-Threaded / Concurrent</td>
+          <td>Fully Concurrent</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Algorithm</td>
+          <td>Mark-Sweep-Compact / Copying</td>
+          <td>Mark-Sweep-Compact / Copying</td>
+          <td>Regional Compaction (SATB)</td>
+          <td>Colored Pointers & Load Barriers</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">STW Pause Duration</td>
+          <td>High (scales with live objects)</td>
+          <td>High (optimized for throughput)</td>
+          <td>Configurable target (e.g. 200ms)</td>
+          <td>Ultra-low (sub-millisecond bounds)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Heap Scale Bounds</td>
+          <td>Under 512 MB</td>
+          <td>512 MB - 4 GB</td>
+          <td>4 GB - 64 GB</td>
+          <td>16 GB - 16 TB+</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Throughput Efficiency</td>
+          <td>Low</td>
+          <td>Maximum (highest batch throughput)</td>
+          <td>Balanced</td>
+          <td>Moderate (load barriers add overhead)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Best For</td>
+          <td>CLI scripts & single-core containers</td>
+          <td>Batch processing, calculations, offline pipelines</td>
+          <td>Standard enterprise web services, REST APIs</td>
+          <td>Low-latency financial APIs, large caches</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Garbage collection is a trade-off between throughput, latency, and footprint. Tuning GC parameters is critical for keeping latency-sensitive Java applications responsive under heavy loads.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Explain the Weak Generational Hypothesis:</strong> The JVM assumes that most objects die young. Therefore, the heap is split into Young and Old generations, allowing Minor GCs to quickly clean the Young Gen without scanning the entire heap.</li>
+      <li><strong>How do survivor spaces prevent memory fragmentation?</strong> During Minor GC, live objects from Eden and the active survivor space are copied to the empty survivor space as a single, contiguous block, leaving the source spaces clean and unfragmented.</li>
+      <li><strong>Explain the difference between Sweep and Compact:</strong> Sweeping simply marks memory slots as free without moving objects, which causes memory fragmentation. Compaction slides all live objects to one end of the heap, creating a contiguous free block, but requires updating all object references.</li>
+      <li><strong>How does ZGC achieve sub-millisecond pauses?</strong> ZGC performs object relocation and compaction concurrently while application threads are running. It uses **colored pointers** to track relocated objects and **load barriers** to intercept reads and update stale pointers on the fly.</li>
+      <li><strong>Why should you avoid explicit System.gc() calls?</strong> `System.gc()` suggestions to the JVM often trigger a Full GC, which pauses all threads and can cause severe latency spikes in production. Use `-XX:+DisableExplicitGC` to ignore these calls.</li>
+    </ul>
+  </div>
+</section>

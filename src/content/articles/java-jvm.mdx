@@ -1,0 +1,370 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">JVM Architecture</span>
+  </div>
+  <h1>JVM Architecture: Class Loading, Memory Areas & JIT Compilers</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Analyze the internal subsystems of the Java Virtual Machine, examine ClassLoader linking steps, runtime memory allocations, and JIT tiered compilation pipelines.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      JVM Internals
+    </span>
+    <span className="difficulty-badge difficulty-badge--advanced">Advanced</span>
+  </div>
+</div>
+
+<p>
+  The Java Virtual Machine (JVM) is an abstract computing machine that enables Java programs to execute cross-platform. It compiles source code `.java` files into platform-independent `.class` bytecode files, which are loaded, verified, and compiled to native machine instructions at runtime.
+</p>
+<p>
+  This guide analyzes the ClassLoader subsystem delegation stages, outlines Runtime Data memory partitions (Heap vs Stack vs MetaSpace), details JIT compiler execution paths, and reviews diagnostic templates for memory exhaustion.
+</p>
+
+<section className="content-section">
+  <h2 id="jvm-overview">JVM Architecture Overview</h2>
+  <p>
+    The JVM is divided into three primary subsystems: the ClassLoader Subsystem, the Runtime Data Areas (memory), and the Execution Engine (interpreters, compilers, and garbage collection).
+  </p>
+
+  {/* ASCII JVM block layout */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ .class Bytecode Input ]<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ Class Loader Subsystem ]<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ Runtime Data Memory Areas ]<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;├── Thread-Shared: Heap & MetaSpace (Method Area)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;└── Thread-Private: JVM Stack, PC Register, Native Stack<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ Execution Engine Subsystem ]<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;├── Interpreter (interprets bytecode line-by-line)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;├── JIT Compiler (C1 / C2 Native Code Compilers)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;└── Garbage Collector (Heap memory reclaimer)<br/>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="class-loader-subsystem">Class Loader: Delegation & Linking</h2>
+  <p>
+    The **ClassLoader Subsystem** dynamically loads class files into the JVM at runtime. It operates in three phases: **Loading**, **Linking**, and **Initialization**.
+  </p>
+
+  <h3>1. Loading Phase</h3>
+  <p>
+    Fetches the binary stream of the `.class` file by name and constructs its representation in the Method Area, generating a `java.lang.Class` object on the Heap.
+  </p>
+
+  <h3>2. Linking Phase</h3>
+  <ul>
+    <li>**Verify:** Validates the compiled bytecode against the JVM specifications to ensure it does not violate security restrictions or contain corrupted instructions.</li>
+    <li>**Prepare:** Allocates memory for static fields and initializes them to default type values (e.g. references to `null`, integers to `0`). Values defined in code are not assigned yet.</li>
+    <li>**Resolve:** Replaces symbolic references in the runtime constant pool with direct memory addresses.</li>
+  </ul>
+
+  <h3>3. Initialization Phase</h3>
+  <p>
+    Executes the static initializers (running `<clinit>` methods) and assigns the values defined in source code to static variables.
+  </p>
+
+  <h3>ClassLoader Delegation Hierarchy</h3>
+  <p>
+    Java resolves class paths using the **Delegation Principle**:
+  </p>
+  <div style={{ background: '#1a1b26', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '20px 0', lineHeight: '1.6' }}>
+    Bootstrap ClassLoader (Core Java APIs - rt.jar / java.base)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;▲<br/>
+    Platform ClassLoader (Extension APIs - platform modules)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;▲<br/>
+    Application ClassLoader (ClassPath & App jars)<br/>
+  </div>
+  <p>
+    When a class loader receives a loading request, it delegates it to its parent loader first. The class is loaded locally only if the parent loader cannot find it. This prevents user-defined classes from overriding core platform classes (e.g., preventing a malicious `java.lang.String` from being loaded).
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="runtime-data-areas">Memory Areas: Heap, Stack & MetaSpace</h2>
+  <p>
+    The JVM partitions its memory into thread-shared and thread-private data areas.
+  </p>
+
+  <h3>1. Thread-Shared Memory (Global Access)</h3>
+  <ul>
+    <li>
+      <strong>Heap Area:</strong> The main memory area where all object instances, arrays, and their instance variables are allocated. The Heap is the primary target of Garbage Collection.
+    </li>
+    <li>
+      <strong>Method Area (MetaSpace):</strong> Stores class structures, metadata, method details, constant pools, and static variables. In Java 8+, this was refactored from the fixed-size heap **PermGen** to **MetaSpace**, which dynamically allocates memory from native OS RAM, reducing `OutOfMemoryError` limits.
+    </li>
+  </ul>
+
+  <h3>2. Thread-Private Memory (Created per Thread)</h3>
+  <ul>
+    <li>
+      <strong>JVM Stack:</strong> Stores stack frames. A new frame is pushed onto the stack for every method call and popped off when the method returns. A frame contains:
+      <ul>
+        <li>**Local Variable Table (LVT):** Stores method parameters and local variables.</li>
+        <li>**Operand Stack:** Holds intermediate values during mathematical operations.</li>
+        <li>**Frame Data:** Holds references to the runtime constant pool and exception tables.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>PC (Program Counter) Register:</strong> Holds the address of the current JVM instruction being executed by the thread.
+    </li>
+    <li>
+      <strong>Native Method Stack:</strong> Holds instruction contexts for JNI native calls.
+    </li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="execution-engine">Execution Engine: JIT & Tiered Compilers</h2>
+  <p>
+    The Execution Engine executes compiled bytecode by translating it into native machine instructions.
+  </p>
+
+  <h3>1. Interpreter vs. JIT Compiler</h3>
+  <ul>
+    <li>**Interpreter:** Reads and executes bytecode instructions one by one. It starts quickly but runs slowly due to repeated parsing.</li>
+    <li>**Just-In-Time (JIT) Compiler:** Identifies "hot spots" (frequently executed methods and loops) and compiles their bytecode directly into native machine code for faster execution.</li>
+  </ul>
+
+  <h3>2. Tiered Compilation (Default Engine)</h3>
+  <p>
+    Modern JVMs use **Tiered Compilation** (combining the speed of the C1 compiler with the deep optimization of the C2 compiler):
+  </p>
+  <ul>
+    <li>**Tier 0 (Interpreter):** Bytecode execution begins here. It profiles method execution to identify hot spots.</li>
+    <li>**Tier 1-3 (C1 Client Compiler):** Compiles bytecode to native code quickly, applying basic optimizations like method inlining and loop unrolling.</li>
+    <li>**Tier 4 (C2 Server Compiler):** Handles highly optimized native compilation. It applies advanced optimizations such as global escape analysis, lock elision (removing unnecessary synchronization), and dead code removal.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Diagnostics Code</h2>
+  <p>
+    The playbook below demonstrates class loader analysis, heap exhaustion diagnostics, and stack overflow limits.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="ClassLoader Hierarchy" lang="java" code={`public class ClassLoaderAnalyzer {
+    public static void main(String[] args) {
+        // 1. Application ClassLoader (AppClassLoader)
+        ClassLoader appLoader = ClassLoaderAnalyzer.class.getClassLoader();
+        System.out.println("Application Loader: " + appLoader);
+
+        // 2. Platform ClassLoader (PlatformClassLoader)
+        ClassLoader platformLoader = appLoader.getParent();
+        System.out.println("Platform Loader: " + platformLoader);
+
+        // 3. Bootstrap ClassLoader (Usually returns null as it is native C++ code)
+        ClassLoader bootstrapLoader = platformLoader.getParent();
+        System.out.println("Bootstrap Loader: " + bootstrapLoader);
+    }
+}`} />
+    <CodeTab label="Heap OutOfMemoryError" lang="java" code={`import java.util.ArrayList;
+import java.util.List;
+
+public class HeapOOMSimulator {
+    public static void main(String[] args) {
+        System.out.println("Starting Heap Exhaustion simulator...");
+        List<byte[]> memoryLeakList = new ArrayList<>();
+        
+        try {
+            // Continuously allocate 1MB chunks to force Heap crash
+            while (true) {
+                memoryLeakList.add(new byte[1024 * 1024]);
+            }
+        } catch (OutOfMemoryError oom) {
+            System.err.println("CRASH SUCCESS: Captured OutOfMemoryError!");
+            System.err.println("Reason: " + oom.getMessage());
+        }
+    }
+}`} />
+    <CodeTab label="StackOverflowError" lang="java" code={`public class StackOverflowSimulator {
+    private static int depth = 0;
+
+    public static void recursiveCall() {
+        depth++;
+        recursiveCall(); // Unlimited recursion to exhaust stack frames
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Starting Stack frame simulator...");
+        try {
+            recursiveCall();
+        } catch (StackOverflowError soe) {
+            System.err.println("CRASH SUCCESS: Captured StackOverflowError!");
+            System.err.println("Max frame depth reached: " + depth);
+        }
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Runtime Data Areas Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Heap Area</th>
+          <th>JVM Stack</th>
+          <th>MetaSpace (Method Area)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Thread Scope</td>
+          <td>Thread-Shared (Global)</td>
+          <td>Thread-Private (Local)</td>
+          <td>Thread-Shared (Global)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Data Stored</td>
+          <td>Object instances, Arrays, Instance fields</td>
+          <td>Method parameters, local variables, frames</td>
+          <td>Class definitions, method metadata, static fields</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Exhaustion Error</td>
+          <td>`OutOfMemoryError` (Heap space)</td>
+          <td>`StackOverflowError` (also OOM if thread allocation fails)</td>
+          <td>`OutOfMemoryError` (Metaspace / native memory)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Garbage Collected?</td>
+          <td>Yes (frequently GC swept)</td>
+          <td>No (frames popped on method return)</td>
+          <td>Rarely (unloads unused ClassLoaders)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Physical Location</td>
+          <td>JVM Virtual memory</td>
+          <td>JVM Virtual memory</td>
+          <td>Off-Heap native OS memory</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Understanding JVM internals is essential for optimizing application performance. Analyzing ClassLoader delegation hierarchies, managing runtime memory splits (Heap vs Stack vs MetaSpace), and utilizing JIT tiered compilers are core concepts in JVM tuning.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Explain the ClassLoader Delegation Principle:</strong> Requests are delegated to parent class loaders first. This ensures core JVM APIs (like `java.lang.String`) cannot be overridden by user jars.</li>
+      <li><strong>What are the ClassLoader linking steps?</strong> Verification (verifies byte syntax security), Preparation (allocates static field default values), and Resolution (resolves symbolic constant references).</li>
+      <li><strong>What is the difference between Heap and Stack?</strong> The Heap is shared across threads and holds object allocations. Stacks are private to each thread and hold short-lived method parameters and local variable frames.</li>
+      <li><strong>How does MetaSpace differ from PermGen?</strong> PermGen was a fixed-size heap space. MetaSpace resides in off-heap native memory, growing dynamically to prevent fixed-size `OutOfMemoryError` conditions.</li>
+      <li><strong>What is Tiered Compilation?</strong> The JVM starts by running interpreted code (Tier 0). As hotspots are identified, they are compiled to native code using the C1 client compiler (Tiers 1-3) and then further optimized using the C2 server compiler (Tier 4) for peak performance.</li>
+    </ul>
+  </div>
+</section>
