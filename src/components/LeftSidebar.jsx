@@ -107,7 +107,7 @@ export default function LeftSidebar({ isOpen }) {
           <svg className="brand-back-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
-          ready4interview
+          back
         </NavLink>
         <div className="sidebar-track-subtitle">{brandTitle}</div>
       </div>
