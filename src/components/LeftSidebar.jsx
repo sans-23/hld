@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS, getTrackByArticleId, countCompleted } from '../config/navigation';
 import './Sidebar.css';
 
@@ -90,7 +90,8 @@ function SidebarSection({ section }) {
 }
 
 export default function LeftSidebar({ isOpen }) {
-  const { articleId } = useParams();
+  const location = useLocation();
+  const articleId = location.pathname.substring(1);
   const track = getTrackByArticleId(articleId) || 'system-design';
 
   const sections = track === 'java' ? JAVA_SECTIONS : SYSTEM_DESIGN_SECTIONS;
