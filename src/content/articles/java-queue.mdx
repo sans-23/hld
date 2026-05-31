@@ -1,0 +1,375 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Queue & Deque</span>
+  </div>
+  <h1>Queue & Deque: PriorityQueue & ArrayDeque</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Explore heap structures, circular buffers, block thread-safety, and systematic implementations of Java Queues.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      10 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Collections
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  Queues coordinate linear operations, sorting priorities, or buffering data flows. Understanding the internal complexities of PriorityQueue binary min-heaps, ArrayDeque circular buffers, and when to bypass pointer lists represents a fundamental requirement for senior Java developers.
+</p>
+<p>
+  This guide traces the Queue/Deque class structures, details heap re-balancing sift routines, examines array pointer wrapping arithmetic, compares legacy Stacks with ArrayDeques, and provides a clean revision sheet of queue and heap patterns.
+</p>
+
+<section className="content-section">
+  <h2 id="queue-hierarchy">Queue & Deque Hierarchy</h2>
+  <p>
+    The <code>Queue</code> interface represents a collection designed for holding elements prior to processing, typically in a First-In-First-Out (FIFO) manner. <code>Deque</code> (Double-Ended Queue, pronounced "deck") extends Queue and supports element insertion and removal at both ends.
+  </p>
+
+  {/* ASCII Hierarchy visualization inside a styled block */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Collection (Interface)</span><br/>
+    └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Queue (Interface)</span><br/>
+        ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>PriorityQueue</span> (Min-Heap array structure, priority-sorted)<br/>
+        └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Deque (Interface)</span><br/>
+            ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>ArrayDeque</span> (Circular array buffer, double-ended)<br/>
+            └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>LinkedList</span> (Pointers-based double-linked list)<br/>
+  </div>
+
+  <h3>Method Tradeoffs</h3>
+  <p>
+    Queue methods are divided into two categories: those that throw an exception on failures (e.g. inserting into a full queue, or polling from an empty queue) and those that return a special value (<code>false</code> or <code>null</code>):
+  </p>
+
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Operation</th>
+          <th>Throws Exception</th>
+          <th>Returns Special Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Insert</td>
+          <td><code>add(e)</code></td>
+          <td><code>offer(e)</code></td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Remove</td>
+          <td><code>remove()</code></td>
+          <td><code>poll()</code></td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Examine</td>
+          <td><code>element()</code></td>
+          <td><code>peek()</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="priority-queue">PriorityQueue: Binary Heap Internals</h2>
+  <p>
+    A `PriorityQueue` is an unbounded queue based on a **priority heap** represented as a dynamically resizable array: `Object[] queue`. 
+  </p>
+  <p>
+    <strong>Key PriorityQueue mechanics:</strong>
+  </p>
+  
+  - **Heap Structure:** Implements a complete binary min-heap. For any element at array index `i`:
+    - Its parent is located at index `(i - 1) / 2`.
+    - Its left child is located at index `2i + 1`.
+    - Its right child is located at index `2i + 2`.
+  - **Ordering:** Elements are ordered according to their natural ordering (`Comparable`) or an explicit `Comparator` provided at instantiation.
+  - **Null Entries:** Does NOT allow `null` elements, because comparing a null key throws a `NullPointerException`.
+
+  <h3>Heap Adjustment Algorithms</h3>
+  <p>
+    To maintain the heap property (where the parent node is always smaller than or equal to its children), PriorityQueue executes sifting routines:
+  </p>
+
+  - **siftUp (Insertion):** When a new element is added via `offer()`, it is appended to the end of the array. The element is sifted up by repeatedly comparing it with its parent and swapping them if it violates the heap property. Complexity: $O(\log N)$.
+  - **siftDown (Removal):** When the head (minimum element) is removed via `poll()`, the element at index 0 is extracted. The last element in the array is moved to index 0, and is sifted down by repeatedly swapping with its smallest child until the min-heap property is restored. Complexity: $O(\log N)$.
+</section>
+
+<section className="content-section">
+  <h2 id="array-deque">ArrayDeque: Circular Array Buffer</h2>
+  <p>
+    An <code>ArrayDeque</code> is a resizable-array implementation of the <code>Deque</code> interface. It uses a **circular array buffer** and two pointers, <code>head</code> and <code>tail</code>, to track boundary indices.
+  </p>
+  <p>
+    <strong>Key ArrayDeque mechanics:</strong>
+  </p>
+  - **No Node Allocation:** Unlike `LinkedList`, which allocates a new `Node` wrapper object for every insertion (increasing JVM memory footprint and Garbage Collection churn), `ArrayDeque` updates elements directly in its pre-allocated array.
+  - **Circular Arithmetic:** The backing array capacity is always a power of two ($2^x$). This allows index increments and wrapping around boundary limits to use bitwise operations instead of division checks:
+    <br/>
+    `tail = (tail + 1) & (elements.length - 1)`
+  - **Resizing:** When `head == tail`, the backing array is full. The array capacity doubles, and elements are copied to line up sequentially from index 0.
+  - **Performance:** Offers amortized $O(1)$ cost for operations like `addFirst`, `addLast`, `pollFirst`, and `pollLast`.
+</section>
+
+<section className="content-section">
+  <h2 id="caching-concurrency">Stack vs. ArrayDeque & BlockingQueue</h2>
+  <p>
+    A standard Java core interview question revolves around why legacy stack collection classes should be avoided:
+  </p>
+
+  <h3>1. java.util.Stack is Deprecated in Practice</h3>
+  <p>
+    The legacy <code>java.util.Stack</code> extends <code>Vector</code>. Because it is backed by Vector, every single operation (<code>push</code>, <code>pop</code>, <code>peek</code>) is **synchronized** using a synchronized lock.
+  </p>
+  <p>
+    Even in a single-threaded environment, this introduces locking overhead, preventing JIT optimizations. In thread-safe contexts, it creates massive contention. 
+    <br/>
+    <em>Solution:</em> Always use <code>ArrayDeque</code> for LIFO stack operations:
+    <br/>
+    <code>Deque&lt;Integer&gt; stack = new ArrayDeque&lt;&gt;();</code>
+  </p>
+
+  <h3>2. Concurrency: BlockingQueues</h3>
+  <p>
+    For multi-threaded producer-consumer patterns, standard queues (like PriorityQueue and ArrayDeque) are unsafe. Instead, use implementations under <code>java.util.concurrent</code>:
+  </p>
+  - **ArrayBlockingQueue:** Bounded FIFO queue backed by a fixed-size array. Blocks producers when full and consumers when empty.
+  - **LinkedBlockingQueue:** Optionally-bounded queue backed by linked nodes. Highly efficient for decoupled worker fleets.
+  - **PriorityBlockingQueue:** Bounded priority queue that blocks consumers when empty, sorting tasks using binary heap locks.
+  - **SynchronousQueue:** A zero-capacity handoff queue. Each insert must wait for a corresponding take, allowing zero buffering.
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    Below is a complete code reference demonstrating Queue, Deque, PriorityQueue custom sorting, and Stack configurations in Java.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Java Queues Guide" lang="java" code={`import java.util.*;
+
+public class JavaQueuePlayground {
+    public static void main(String[] args) {
+        
+        // 1. Standard FIFO Queue (LinkedList as backing)
+        Queue<String> queue = new LinkedList<>();
+        queue.offer("Alice");
+        queue.offer("Bob");
+        queue.offer("Charlie");
+
+        System.out.println("Queue Head: " + queue.peek()); // Alice
+        System.out.println("Polled: " + queue.poll()); // Alice
+        System.out.println("Remaining: " + queue); // [Bob, Charlie]
+
+        // 2. PriorityQueue (Min-Heap / Natural Order)
+        Queue<Integer> minHeap = new PriorityQueue<>();
+        minHeap.offer(50);
+        minHeap.offer(10);
+        minHeap.offer(30);
+
+        System.out.println("Min-Heap Head: " + minHeap.peek()); // 10 (smallest)
+        System.out.println("Min-Heap Polled: " + minHeap.poll()); // 10
+        System.out.println("Min-Heap Next: " + minHeap.peek()); // 30
+
+        // Custom Comparator (Max-Heap)
+        Queue<Integer> maxHeap = new PriorityQueue<>(Comparator.reverseOrder());
+        maxHeap.offer(50);
+        maxHeap.offer(10);
+        maxHeap.offer(30);
+
+        System.out.println("Max-Heap Head: " + maxHeap.peek()); // 50 (largest)
+
+        // 3. ArrayDeque used as LIFO Stack (Preferred over java.util.Stack)
+        Deque<String> stack = new ArrayDeque<>();
+        stack.push("Layer 1");
+        stack.push("Layer 2");
+        stack.push("Layer 3");
+
+        System.out.println("Stack Top: " + stack.peek()); // Layer 3
+        System.out.println("Popped: " + stack.pop()); // Layer 3
+        System.out.println("Stack Next: " + stack.peek()); // Layer 2
+
+        // 4. Double-Ended Deque Operations
+        Deque<String> deque = new ArrayDeque<>();
+        deque.addFirst("Head-1");
+        deque.addLast("Tail-1");
+        deque.addFirst("Head-2"); // [Head-2, Head-1, Tail-1]
+
+        System.out.println("Peek First: " + deque.peekFirst()); // Head-2
+        System.out.println("Peek Last: " + deque.peekLast()); // Tail-1
+        System.out.println("Poll First: " + deque.pollFirst()); // Head-2
+        System.out.println("Poll Last: " + deque.pollLast()); // Tail-1
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Queue Implementations Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>PriorityQueue</th>
+          <th>ArrayDeque</th>
+          <th>LinkedList</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Underlying Structure</td>
+          <td>Binary Min-Heap (Array)</td>
+          <td>Circular Array</td>
+          <td>Doubly-Linked List</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Insert Complexity</td>
+          <td>$O(\log N)$</td>
+          <td>Amortized $O(1)$</td>
+          <td>$O(1)$</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Remove Complexity</td>
+          <td>$O(\log N)$</td>
+          <td>Amortized $O(1)$</td>
+          <td>$O(1)$</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Examine Complexity</td>
+          <td>$O(1)$</td>
+          <td>$O(1)$</td>
+          <td>$O(1)$</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Allows Null?</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Memory Footprint</td>
+          <td>Low (Flat Array)</td>
+          <td>Low (Flat Array)</td>
+          <td>High (Pointer Node wrappers)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Queue architectures balance priority ordering against insertion speed. When designing systems, prefer ArrayDeque for standard stacks and queues to bypass synchronization and pointer allocations, and use PriorityQueue for sorting workloads.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Avoid Vector-backed Stack:</strong> Explain that legacy Stack uses Vector-synchronized code blocks, slowing execution. Always suggest ArrayDeque instead.</li>
+      <li><strong>Contrast LinkedList vs ArrayDeque garbage overhead:</strong> Linked lists allocate <code>Node</code> objects for every insertion. ArrayDeque avoids GC overhead using a raw array buffer.</li>
+      <li><strong>Explain PriorityQueue heap index relation:</strong> Memorize left child index <code>2i + 1</code> and parent index <code>(i - 1) / 2</code> to demonstrate complete binary tree mechanics.</li>
+      <li><strong>Highlight method results:</strong> Call out the difference between exception-throwing (e.g. <code>add</code>) and special value returning (e.g. <code>offer</code>) queue methods.</li>
+    </ul>
+  </div>
+</section>

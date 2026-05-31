@@ -31,6 +31,10 @@ import ScalingWrites from '../content/articles/scaling-writes.mdx';
 import LargeBlobs from '../content/articles/large-blobs.mdx';
 import LongRunning from '../content/articles/long-running.mdx';
 import JavaMap from '../content/articles/java-map.mdx';
+import JavaQueue from '../content/articles/java-queue.mdx';
+import JavaStack from '../content/articles/java-stack.mdx';
+import JavaList from '../content/articles/java-list.mdx';
+import JavaSet from '../content/articles/java-set.mdx';
 import NotFound from './NotFound';
 
 export default function MainContent() {
@@ -68,6 +72,10 @@ export default function MainContent() {
     if (articleId === 'large-blobs') return <LargeBlobs />;
     if (articleId === 'long-running') return <LongRunning />;
     if (articleId === 'java-map') return <JavaMap />;
+    if (articleId === 'java-queue') return <JavaQueue />;
+    if (articleId === 'java-stack') return <JavaStack />;
+    if (articleId === 'java-list') return <JavaList />;
+    if (articleId === 'java-set') return <JavaSet />;
     
     // Default to Networking Essentials
     return <NetworkingEssentials />;

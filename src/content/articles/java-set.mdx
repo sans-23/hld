@@ -1,0 +1,385 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Set Interface</span>
+  </div>
+  <h1>Set Interface: HashSet, LinkedHashSet & TreeSet</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Explore how Sets delegate unique keys to backing Map structures, analyze insertion-ordered lists, and examine sorted TreeSet range bounds.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      10 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Collections
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  The `Set` interface defines a collection that contains **no duplicate elements**, modeling the mathematical set abstraction. While Sets present a simple API, their internal implementations are closely tied to Java's `Map` structures.
+</p>
+<p>
+  This guide analyzes the backing map mechanisms of `HashSet`, details insertion tracking in `LinkedHashSet`, explores sorting structures in `TreeSet`, and reviews the `NavigableSet` range boundaries.
+</p>
+
+<section className="content-section">
+  <h2 id="set-overview">Set Interface Overview</h2>
+  <p>
+    The Java Collections Framework does not implement sets from scratch. Instead, it utilizes key uniqueness contracts already defined by `Map` classes. The relationship is structured as follows:
+  </p>
+
+  {/* ASCII Set Hierarchy */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Collection (Interface)</span><br/>
+    └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Set (Interface)</span><br/>
+        ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>HashSet</span> (Backed by HashMap, unordered)<br/>
+        ├── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>LinkedHashSet</span> (Backed by LinkedHashMap, insertion-order)<br/>
+        └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>SortedSet / NavigableSet (Interfaces)</span><br/>
+            └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>TreeSet</span> (Backed by TreeMap, sorted by Comparable/Comparator)<br/>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="hash-set-internals">HashSet: Backing HashMap & PRESENT Dummy</h2>
+  <p>
+    A `HashSet` is backed internally by a transient `HashMap` instance:
+  </p>
+
+```java
+public class HashSet<E> implements Set<E> {
+    private transient HashMap<E,Object> map;
+
+    // Dummy value to associate with an Object in the backing Map
+    private static final Object PRESENT = new Object();
+
+    public HashSet() {
+        map = new HashMap<>();
+    }
+}
+```
+
+  <h3>1. Enforcing Uniqueness</h3>
+  <p>
+    When you insert an element using `add(E e)`, `HashSet` calls `put()` on its backing `HashMap`, using your element as the **key** and the dummy `PRESENT` object as the **value**:
+  </p>
+
+```java
+public boolean add(E e) {
+    return map.put(e, PRESENT) == null;
+}
+```
+
+  <p>
+    If the key does not exist in the map, `map.put()` returns `null`, and the set's `add()` method returns `true`. If the key is already present, `map.put()` returns the existing value (`PRESENT`), and `add()` returns `false`, preventing duplicates.
+  </p>
+
+  <h3>2. Hash Code & Equals Dependency</h3>
+  <p>
+    Because elements act as keys in a `HashMap`, they must correctly implement `hashCode()` and `equals()`. 
+  </p>
+  <ul>
+    <li>`hashCode()` determines the bucket location.</li>
+    <li>`equals()` resolves collisions within the bucket.</li>
+  </ul>
+  <p>
+    If these methods are inconsistent, the set will allow duplicate objects to be added, causing unexpected behavior.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="linked-hash-set-internals">LinkedHashSet: LinkedHashMap Ordering</h2>
+  <p>
+    `LinkedHashSet` extends `HashSet`. Rather than duplicating code, it calls a package-private superconstructor in `HashSet` that initializes a `LinkedHashMap`:
+  </p>
+
+```java
+// HashSet package-private constructor used by LinkedHashSet
+HashSet(int initialCapacity, float loadFactor, boolean dummy) {
+    map = new LinkedHashMap<>(initialCapacity, loadFactor);
+}
+```
+
+  <p>
+    <strong>Key mechanics of LinkedHashSet:</strong>
+  </p>
+  <ul>
+    <li>
+      <strong>Insertion Order:</strong> Iterating through a `LinkedHashSet` returns elements in the exact order they were inserted. This is managed by the doubly-linked list pointers inside the backing `LinkedHashMap`.
+    </li>
+    <li>
+      <strong>Lookup Performance:</strong> Retains the $O(1)$ performance of `HashSet` for search, insertion, and deletion.
+    </li>
+    <li>
+      <strong>Memory Overhead:</strong> Slightly higher memory footprint than `HashSet` due to the overhead of storing linked list pointers for each entry.
+    </li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="tree-set-internals">TreeSet: TreeMap Sorted & Bounds</h2>
+  <p>
+    `TreeSet` is backed by a `TreeMap` instance. It implements `NavigableSet` (which extends `SortedSet`), ordering its elements in a Red-Black Tree.
+  </p>
+
+  <h3>1. Sorted Performance</h3>
+  <p>
+    Unlike `HashSet`, which offers $O(1)$ average time complexity, `TreeSet` operations (`add`, `remove`, `contains`) run in **$O(\log N)$** time. This is because elements must be inserted into a balanced binary tree, which requires comparison steps.
+  </p>
+
+  <h3>2. NavigableSet API Range Bounds</h3>
+  <p>
+    Because the tree is sorted, `TreeSet` can perform range queries and nearest-match lookups:
+  </p>
+  <ul>
+    <li>`first()` / `last()`: Returns the lowest/highest elements.</li>
+    <li>`lower(e)` / `higher(e)`: Returns the greatest element strictly less than `e`, or the least element strictly greater than `e`.</li>
+    <li>`floor(e)` / `ceiling(e)`: Returns the greatest element less than or equal to `e`, or the least element greater than or equal to `e`.</li>
+    <li>`subSet(fromElement, toElement)`: Returns a view of the portion of the set ranging from `fromElement` to `toElement`.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    The playbook below covers standard set mutations, ordering differences, custom comparators, and navigating sorted boundaries.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="HashSet & LinkedHashSet" lang="java" code={`import java.util.*;
+
+public class SetOrderingPlaybook {
+    public static void main(String[] args) {
+        // 1. HashSet (Unordered)
+        Set<String> hashSet = new HashSet<>();
+        hashSet.add("Banana");
+        hashSet.add("Apple");
+        hashSet.add("Cherry");
+        hashSet.add("Apple"); // Duplicate ignored
+
+        System.out.println("HashSet (No order): " + hashSet); 
+        // Example Output: [Apple, Cherry, Banana]
+
+        // 2. LinkedHashSet (Preserves insertion order)
+        Set<String> linkedSet = new LinkedHashSet<>();
+        linkedSet.add("Banana");
+        linkedSet.add("Apple");
+        linkedSet.add("Cherry");
+
+        System.out.println("LinkedHashSet (Insertion order): " + linkedSet);
+        // Guaranteed Output: [Banana, Apple, Cherry]
+    }
+}`} />
+    <CodeTab label="TreeSet & Comparator" lang="java" code={`import java.util.*;
+
+public class TreeSetSorting {
+    public static void main(String[] args) {
+        // 1. Natural Sort order (Alphabetical)
+        TreeSet<String> naturalTree = new TreeSet<>();
+        naturalTree.add("Rust");
+        naturalTree.add("Java");
+        naturalTree.add("Go");
+
+        System.out.println("Natural Sorted TreeSet: " + naturalTree); // [Go, Java, Rust]
+
+        // 2. Custom Comparator: Sort by String Length, then Alphabetically
+        TreeSet<String> customTree = new TreeSet<>((s1, s2) -> {
+            int lenCompare = Integer.compare(s1.length(), s2.length());
+            return lenCompare != 0 ? lenCompare : s1.compareTo(s2);
+        });
+
+        customTree.addAll(Arrays.asList("Python", "Go", "Java", "C"));
+        System.out.println("Length Sorted TreeSet: " + customTree); // [C, Go, Java, Python]
+    }
+}`} />
+    <CodeTab label="NavigableSet API" lang="java" code={`import java.util.*;
+
+public class NavigableSetPlaybook {
+    public static void main(String[] args) {
+        NavigableSet<Integer> scores = new TreeSet<>(Arrays.asList(10, 25, 50, 75, 90));
+
+        System.out.println("Lowest: " + scores.first()); // 10
+        System.out.println("Highest: " + scores.last()); // 90
+
+        // Nearest Match Lookups
+        System.out.println("Strictly lower than 50: " + scores.lower(50)); // 25
+        System.out.println("Lower or equal to 50: " + scores.floor(50)); // 50
+        
+        System.out.println("Strictly higher than 50: " + scores.higher(50)); // 75
+        System.out.println("Higher or equal to 50: " + scores.ceiling(50)); // 50
+
+        // Subsets
+        System.out.println("Subset [25, 75): " + scores.subSet(25, 75)); // [25, 50]
+        
+        // Reverse views
+        System.out.println("Descending view: " + scores.descendingSet()); // [90, 75, 50, 25, 10]
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Set Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>HashSet</th>
+          <th>LinkedHashSet</th>
+          <th>TreeSet</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Backing Map</td>
+          <td>`HashMap`</td>
+          <td>`LinkedHashMap`</td>
+          <td>`TreeMap`</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Time Complexity</td>
+          <td>$O(1)$ average</td>
+          <td>$O(1)$ average</td>
+          <td>$O(\log N)$ worst-case</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Iteration Order</td>
+          <td>Unordered</td>
+          <td>Insertion Order</td>
+          <td>Sorted (Comparable or Comparator)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Allows Null?</td>
+          <td>Yes (single null allowed)</td>
+          <td>Yes (single null allowed)</td>
+          <td>No (null comparison throws NPE)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Memory Footprint</td>
+          <td>Medium</td>
+          <td>High (extra pointers)</td>
+          <td>Medium (tree nodes)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Range Queries</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Yes (NavigableSet methods)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Sets in Java leverage Map key properties to enforce element uniqueness. Selecting between HashSet for raw speed, LinkedHashSet to preserve ordering, and TreeSet for sorted boundary lookups is key to choosing the correct set structure.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>How does HashSet prevent duplicates?</strong> It maps elements as keys in a backing `HashMap` instance, assigning them a dummy `PRESENT` object value. `HashMap` keys are guaranteed to be unique.</li>
+      <li><strong>What happens when you add a duplicate to HashSet?</strong> The call delegates to `map.put(key, PRESENT)`. Since the key already exists, the map returns `PRESENT` instead of `null`, causing `add()` to return `false` without modifying the set.</li>
+      <li><strong>Why does TreeSet disallow nulls?</strong> Because tree insertions compare keys to determine parent-child placement. Comparing a null key throws a `NullPointerException`.</li>
+      <li><strong>Compare set iteration performance:</strong> `LinkedHashSet` iteration is generally faster than `HashSet` because it iterates over the linked list pointers rather than checking empty capacity buckets in a hash table.</li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,405 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Stack & Vector</span>
+  </div>
+  <h1>Stack & Vector: Synchronized Overhead & Design Violations</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Analyze why Stack and Vector are legacy classes, explore the performance costs of monitor locks, and examine modern LIFO alternatives.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Collections
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  In the early days of Java (JDK 1.0), developers needed linear structures that were thread-safe out of the box. The designers introduced `Vector` and its subclass `Stack`. Because concurrency utilities were minimal, thread-safety was enforced by wrapping almost all operations in `synchronized` blocks.
+</p>
+<p>
+  This guide analyzes the design decisions behind Stack and Vector, inspects why they violate object-oriented encapsulation boundaries, details the massive performance issues of lock synchronization, and demonstrates modern, high-performance replacements.
+</p>
+
+<section className="content-section">
+  <h2 id="stack-overview">Stack & Vector Overview</h2>
+  <p>
+    The inheritance structure of `Vector` and `Stack` ties them directly to the `List` interface. While `ArrayList` was introduced in JDK 1.2 as a non-synchronized alternative, Vector and Stack were retrofitted to implement the new collections interfaces, carrying their legacy synchronized design with them.
+  </p>
+
+  {/* ASCII Inheritance visualization */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Collection (Interface)</span><br/>
+    └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>List (Interface)</span><br/>
+        ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>ArrayList</span> (Non-synchronized resizable array)<br/>
+        └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Vector</span> (Synchronized resizable array)<br/>
+            └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>Stack</span> (LIFO synchronized stack structure)<br/>
+  </div>
+
+  <p>
+    A stack is formally defined as a Last-In-First-Out (LIFO) data structure supporting only two primary operations: `push` (add to top) and `pop` (remove from top). However, because Java's `Stack` extends `Vector`, it inherits all index-based list operations, leading to severe architectural problems.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="vector-synchronized">Vector & Synchronization Overhead</h2>
+  <p>
+    Every single modification and read method in `Vector` is marked with the `synchronized` keyword:
+  </p>
+
+```java
+// Simplified representation of java.util.Vector methods
+public synchronized boolean add(E e) {
+    modCount++;
+    ensureCapacityHelper(elementCount + 1);
+    elementData[elementCount++] = e;
+    return true;
+}
+
+public synchronized E get(int index) {
+    if (index >= elementCount)
+        throw new ArrayIndexOutOfBoundsException(index);
+    return elementData(index);
+}
+```
+
+  <h3>Why Coarse-Grained Monitor Synchronization is Slow</h3>
+  <ul>
+    <li>
+      <strong>Lock Contention:</strong> When multiple threads access a `Vector`, they must acquire the object monitor lock. Even if one thread is reading and another is checking the size, they are serialized, causing throughput to crash.
+    </li>
+    <li>
+      <strong>Locking Overhead in Single-Threaded Environments:</strong> Even when called by a single thread, the JVM must repeatedly request and release monitor locks. While JVM optimizations like **Lock Biasing** and **Lock Elision** attempt to optimize this, they add complexity and are not guaranteed. Lock biasing has actually been deprecated and removed in recent JVM versions (JEP 374) because of its overhead on modern multi-threaded chips.
+    </li>
+    <li>
+      <strong>Lack of Granularity:</strong> Unlike modern concurrent structures (like `ConcurrentHashMap` which uses bucket-level partitioning), `Vector` locks the entire object instance.
+    </li>
+  </ul>
+
+  <Callout type="warning">
+    <strong>Thread-Safety is an Illusion:</strong> Individual methods of `Vector` are thread-safe, but composite operations are NOT. For instance, doing `if (!vector.isEmpty()) { vector.remove(0); }` still requires external synchronization, otherwise another thread can empty the vector between the check and the removal, leading to an index exception.
+  </Callout>
+</section>
+
+<section className="content-section">
+  <h2 id="stack-design-violations">Stack: OOP & Design Flaws</h2>
+  <p>
+    Java's `java.util.Stack` is widely considered one of the worst design violations in the Java Development Kit (JDK). It violates core object-oriented principles:
+  </p>
+
+  <h3>1. Inheritance vs. Composition (Liskov Substitution Principle Violation)</h3>
+  <p>
+    An object subclassing another should adhere to the parent's contract while extending or specializing behavior. It must not violate the core constraints of the abstraction it represents.
+  </p>
+  <p>
+    By extending `Vector`, `Stack` inherits all index-based mutations:
+  </p>
+  <ul>
+    <li>`stack.add(0, "sneaky_insert")`: Inserts an element at the bottom of the stack, bypassing LIFO constraints.</li>
+    <li>`stack.remove(3)`: Removes an element from the middle of the stack.</li>
+    <li>`stack.clear()`: Wipes elements directly.</li>
+  </ul>
+  <p>
+    This breaks <strong>encapsulation</strong> and violates the <strong>Liskov Substitution Principle (LSP)</strong>. A stack is supposed to enforce LIFO; but Java's Stack fails to enforce this restriction because client code can treat it as a random-access List.
+  </p>
+
+  <h3>2. Synchronization Penalties</h3>
+  <p>
+    Because it extends Vector, every `push()`, `pop()`, and `peek()` call pays the performance cost of acquiring the synchronized lock on the vector instance.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="modern-alternatives">Modern Alternatives: ArrayDeque</h2>
+  <p>
+    To resolve the issues of Vector and Stack, Java introduced better alternatives in later releases:
+  </p>
+
+  <h3>For LIFO Stacks: Use Deque & ArrayDeque</h3>
+  <p>
+    The official recommendation since JDK 1.6 is to use the `Deque` interface with the `ArrayDeque` implementation:
+  </p>
+
+```java
+Deque<Integer> stack = new ArrayDeque<>();
+```
+  
+  <p>
+    <strong>Why ArrayDeque is superior:</strong>
+  </p>
+  <ul>
+    <li>
+      <strong>No Synchronization:</strong> It is designed for single-threaded usage. It bypasses all lock checks, yielding massive performance gains.
+    </li>
+    <li>
+      <strong>True Double-Ended Queue (or LIFO):</strong> While it supports double-ended operations, it does not allow random access by arbitrary index. You cannot insert or remove elements in the middle (such as at index k), preserving the stack's integrity.
+    </li>
+    <li>
+      <strong>Contiguous Memory Buffer:</strong> Unlike `LinkedList`, which wraps elements in node pointer objects, `ArrayDeque` uses a flat, circular array. This provides optimal CPU cache locality and generates zero garbage collection overhead on insertions.
+    </li>
+  </ul>
+
+  <h3>For Thread-Safe Lists: Use Concurrent Collections</h3>
+  <p>
+    If you need thread-safe list functionality, avoid `Vector`. Instead, select:
+  </p>
+  <ul>
+    <li><strong>`Collections.synchronizedList(new ArrayList<>())`:</strong> If you need simple synchronized access but want to choose the underlying list structure.</li>
+    <li><strong>`CopyOnWriteArrayList`:</strong> Ideal for scenarios where read operations vastly outnumber write operations. Any write creates a new copy of the array, meaning readers never block.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    The following playbook shows how legacy Stack operations are violated, and contrasts them with standard LIFO stacks built with `ArrayDeque`.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Java Stack Violation" lang="java" code={`import java.util.*;
+
+public class LegacyStackViolation {
+    public static void main(String[] args) {
+        // 1. Instantiating Legacy Stack
+        Stack<String> legacyStack = new Stack<>();
+        legacyStack.push("Bottom");
+        legacyStack.push("Middle");
+        legacyStack.push("Top");
+
+        System.out.println("Stack top via peek(): " + legacyStack.peek()); // Top
+
+        // VIOLATION: Exposing index-based modification because it extends Vector
+        legacyStack.add(0, "Illegal Bottom Insert!"); 
+        legacyStack.remove(2); // Removes "Middle" from the center of the stack
+
+        System.out.println("Modified Stack: " + legacyStack); 
+        // Output: [Illegal Bottom Insert!, Bottom, Top] -> Bypassed LIFO!
+    }
+}`} />
+    <CodeTab label="ArrayDeque (Preferred)" lang="java" code={`import java.util.*;
+
+public class ModernStackUsage {
+    public static void main(String[] args) {
+        // 1. Using Deque interface to enforce Stack behavior
+        Deque<String> stack = new ArrayDeque<>();
+        
+        // Push elements to the top of the stack
+        stack.push("Bottom");
+        stack.push("Middle");
+        stack.push("Top");
+
+        System.out.println("Peek Top: " + stack.peek()); // Top
+
+        // Pop elements
+        System.out.println("Popped: " + stack.pop()); // Top
+        System.out.println("Remaining: " + stack); // [Middle, Bottom]
+
+        // Note: ArrayDeque does NOT support index insertions like add(index, element).
+        // It guarantees operations are bounded to the boundaries of the structure!
+    }
+}`} />
+    <CodeTab label="Thread-Safe List Alternatives" lang="java" code={`import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class ThreadSafeListPlaybook {
+    public static void main(String[] args) {
+        // Alternative 1: Synchronized Wrapper (locks on monitor)
+        List<String> syncList = Collections.synchronizedList(new ArrayList<>());
+        syncList.add("Data");
+        
+        // Note: Iterating must be manually synchronized to prevent ConcurrentModificationException!
+        synchronized (syncList) {
+            for (String s : syncList) {
+                System.out.println(s);
+            }
+        }
+
+        // Alternative 2: CopyOnWriteArrayList (Thread-safe, Lock-free Reads)
+        // Best for read-heavy caches or configurations
+        List<String> cowList = new CopyOnWriteArrayList<>();
+        cowList.add("Config1");
+        cowList.add("Config2");
+        
+        // Iterating is safe and does not need external locks
+        for (String config : cowList) {
+            System.out.println(config);
+        }
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Stack/Vector Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>java.util.Stack</th>
+          <th>java.util.Vector</th>
+          <th>ArrayDeque (as Stack)</th>
+          <th>ArrayList</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Thread Safety</td>
+          <td>Yes (synchronized locks)</td>
+          <td>Yes (synchronized locks)</td>
+          <td>No</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">LIFO Enforced</td>
+          <td>No (Exposes List interface methods)</td>
+          <td>No (Exposes List interface methods)</td>
+          <td>Yes (Bounded boundary API)</td>
+          <td>No (List structure)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Arbitrary Index Access</td>
+          <td>Yes (O(1))</td>
+          <td>Yes (O(1))</td>
+          <td>No</td>
+          <td>Yes (O(1))</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Underlying Structure</td>
+          <td>Resizable Object Array</td>
+          <td>Resizable Object Array</td>
+          <td>Circular Object Array</td>
+          <td>Resizable Object Array</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Resize Capacity Growth</td>
+          <td>Doubles (inherits Vector behavior)</td>
+          <td>Doubles (or capacityIncrement)</td>
+          <td>Doubles</td>
+          <td>1.5x (oldSize + (oldSize &gt;&gt; 1))</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Performance</td>
+          <td>Slow (Lock acquisition overhead)</td>
+          <td>Slow (Lock acquisition overhead)</td>
+          <td>Fastest LIFO (No locks, array-backed)</td>
+          <td>Fastest random access (No locks)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    Legacy collection classes like Vector and Stack carrying synchronizations on single methods are structural relics. Understanding how lock-based overhead restricts modern low-latency JVM optimizations and why arbitrary index injection violates LIFO contracts is key to designing robust systems.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Why is Stack a bad design?</strong> It extends Vector instead of using composition, thus exposing index mutations (like `insertElementAt`) that break the LIFO stack guarantee.</li>
+      <li><strong>Why is Vector slow?</strong> Every method is synchronized on the instance level, generating synchronization overhead and blocking concurrent access, even for read-only operations.</li>
+      <li><strong>What should you use for stacks?</strong> Always suggest `ArrayDeque`. It implements `Deque`, avoids synchronization, and allocates memory contiguously without pointer node overhead.</li>
+      <li><strong>How do you synchronize an ArrayList?</strong> Recommend `Collections.synchronizedList(list)` or concurrent classes like `CopyOnWriteArrayList` depending on read/write distribution.</li>
+    </ul>
+  </div>
+</section>

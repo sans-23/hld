@@ -100,10 +100,10 @@ export const JAVA_SECTIONS = [
     defaultExpanded: true,
     items: [
       { id: 'java-map', label: 'Map (HashMap, TreeMap)', href: '/java-map', status: 'default' },
-      { id: 'java-queue', label: 'Queue & Deque', href: '/java-queue', status: 'locked' },
-      { id: 'java-stack', label: 'Stack & Vector', href: '/java-stack', status: 'locked' },
-      { id: 'java-list', label: 'List (ArrayList, LinkedList)', href: '/java-list', status: 'locked' },
-      { id: 'java-set', label: 'Set (HashSet, TreeSet)', href: '/java-set', status: 'locked' },
+      { id: 'java-queue', label: 'Queue & Deque', href: '/java-queue', status: 'default' },
+      { id: 'java-stack', label: 'Stack & Vector', href: '/java-stack', status: 'default' },
+      { id: 'java-list', label: 'List (ArrayList, LinkedList)', href: '/java-list', status: 'default' },
+      { id: 'java-set', label: 'Set (HashSet, TreeSet)', href: '/java-set', status: 'default' },
     ],
   },
   {
@@ -111,7 +111,7 @@ export const JAVA_SECTIONS = [
     title: 'Java Concurrency',
     defaultExpanded: false,
     items: [
-      { id: 'java-threads', label: 'Threads & Sync', href: '/java-threads', status: 'locked' },
+      { id: 'java-threads', label: 'Threads & Sync', href: '/java-threads', status: 'default' },
       { id: 'java-locks', label: 'Locks & CAS', href: '/java-locks', status: 'locked' },
       { id: 'java-concurrent-collections', label: 'Concurrent Collections', href: '/java-concurrent-collections', status: 'locked' },
       { id: 'java-virtual-threads', label: 'Virtual Threads', href: '/java-virtual-threads', status: 'locked' },

@@ -1,0 +1,405 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">List Interface</span>
+  </div>
+  <h1>List Interface: ArrayList, LinkedList & Memory Locality</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Compare dynamic array scaling against linked node structures, examine memory footprints, and explore CPU cache prefetching.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Collections
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  The `List` interface represents an ordered collection that permits duplicate values and provides precise control over where elements are inserted. While `ArrayList` and `LinkedList` implement the same `List` interface, their underlying memory layouts and physical execution models are completely different.
+</p>
+<p>
+  This guide explores the performance mechanics of `ArrayList` resizable array shifts, details the garbage collection (GC) pressure of `LinkedList` pointer node structures, contrasts CPU cache-line locality, and reviews concurrent list options.
+</p>
+
+<section className="content-section">
+  <h2 id="list-overview">List Interface Overview</h2>
+  <p>
+    The standard List structure in Java organizes items linearly. The three main classes that developers choose from are `ArrayList`, `LinkedList`, and the thread-safe `CopyOnWriteArrayList`:
+  </p>
+
+  {/* ASCII List Hierarchy */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Collection (Interface)</span><br/>
+    └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>List (Interface)</span><br/>
+        ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>ArrayList</span> (Dynamic resizable flat array)<br/>
+        ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>LinkedList</span> (Doubly-linked pointer node structure)<br/>
+        └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>CopyOnWriteArrayList</span> (Thread-safe snapshot list for read-heavy flows)<br/>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="array-list-internals">ArrayList: Growth & Copier Mechanics</h2>
+  <p>
+    An `ArrayList` is backed by a flat, contiguous object array: `transient Object[] elementData`. 
+  </p>
+
+  <h3>1. Resizing Mathematics</h3>
+  <p>
+    When elements are added and the backing array is full, the list grows dynamically. In Java, the capacity increases by exactly **50% (1.5x)** of the current size. The calculation uses bitwise right shifts for speed:
+  </p>
+
+```java
+int oldCapacity = elementData.length;
+int newCapacity = oldCapacity + (oldCapacity >> 1);
+```
+
+  <p>
+    For example, if the current size is 10, `10 >> 1` equals 5. The new capacity becomes 15. Bit shifts are executed directly at the hardware processor register level, making them faster than floating-point math.
+  </p>
+
+  <h3>2. Dynamic Copying Costs</h3>
+  <p>
+    Once the new capacity is computed, `ArrayList` allocates a new array and copies the elements from the old array using `Arrays.copyOf(elementData, newCapacity)`. 
+  </p>
+  <p>
+    This method internally calls the JVM's native `System.arraycopy` function. `System.arraycopy` utilizes highly optimized CPU memory block transfer instructions (such as `memmove`/`memcpy`), making it extremely fast, but it still has an $O(N)$ time complexity.
+  </p>
+
+  <h3>3. Index-Based Shifting</h3>
+  <p>
+    While appending an element to the end of an `ArrayList` is an amortized $O(1)$ operation, inserting or removing elements in the middle at index `k` requires shifting elements:
+  </p>
+  <ul>
+    <li>All elements from index `k` to the end must be shifted to the right (for insertion) or left (for deletion).</li>
+    <li>This requires copying elements, which is an $O(N)$ operation.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="linked-list-internals">LinkedList: Pointer Node & GC Overhead</h2>
+  <p>
+    `LinkedList` is backed by a doubly-linked structure of `Node` object wrappers. The class maintains references to `first` and `last`:
+  </p>
+
+```java
+private static class Node<E> {
+    E item;
+    Node<E> next;
+    Node<E> prev;
+}
+```
+
+  <h3>1. Heavy Node Memory Footprint</h3>
+  <p>
+    Unlike `ArrayList`, which is just a single contiguous block of references, `LinkedList` allocates a new `Node` instance for every single element.
+  </p>
+  <p>
+    On a typical 64-bit JVM with compressed OOPs (Ordinary Object Pointers):
+  </p>
+  <ul>
+    <li>**Node Object Header:** 12 bytes + 4 bytes padding = 16 bytes.</li>
+    <li>**References:** Three reference fields (`item`, `next`, `prev`) * 4 bytes each = 12 bytes.</li>
+    <li>**Node Total:** 28 bytes, which rounds up to **32 bytes** due to JVM 8-byte object alignment rules.</li>
+  </ul>
+  <p>
+    If you store 1,000,000 integers in a `LinkedList`, the wrapper nodes alone consume **32 megabytes** of heap space, in addition to the actual integer objects. In an `ArrayList`, storing 1,000,000 references requires only a single array of references (~4 megabytes).
+  </p>
+
+  <h3>2. Garbage Collection Pressure</h3>
+  <p>
+    Because each element requires a separate `Node` object allocation, adding and removing elements generates thousands of short-lived objects. This fills up the JVM's Young Generation area quickly, leading to frequent Minor Garbage Collection sweeps and potential CPU pauses.
+  </p>
+
+  <h3>3. Positional Access Traversal</h3>
+  <p>
+    To perform an index lookup `list.get(k)`, the list must be traversed sequentially from the closest end:
+  </p>
+
+```java
+// Simplified traversal representation in LinkedList
+Node<E> node = (index < (size >> 1)) ? first : last;
+if (index < (size >> 1)) {
+    for (int i = 0; i < index; i++) node = node.next;
+} else {
+    for (int i = size - 1; i > index; i--) node = node.prev;
+}
+```
+
+  <p>
+    Traversing elements in this way requires $O(N)$ steps, unlike the $O(1)$ instant index lookups in `ArrayList`.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="cache-locality">Hardware Alignment: CPU Cache Locality</h2>
+  <p>
+    Beyond asymptotic time complexity, the physical memory layouts of these structures impact hardware performance. Modern CPUs use L1, L2, and L3 caches to speed up data access.
+  </p>
+
+  <h3>Spatial Locality & Prefetching</h3>
+  <ul>
+    <li>
+      <strong>ArrayList (Contiguous Memory):</strong> All elements in an array are stored in consecutive memory addresses. When the CPU accesses `elementData[i]`, the hardware prefetcher automatically loads the surrounding 64-byte chunk (a **cache line**) into L1/L2 cache. Subsequent reads of index `i+1`, `i+2` are instant cache hits.
+    </li>
+    <li>
+      <strong>LinkedList (Scattered Memory):</strong> Since `Node` wrappers are allocated on the JVM heap at different times, they are scattered randomly across physical RAM. When the CPU dereferences `node.next`, it must fetch a completely different address, which often results in a **CPU Cache Miss**. The processor is forced to halt and wait for data to be loaded from main memory, which is significantly slower.
+    </li>
+  </ul>
+
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)', margin: '24px 0' }}>
+    <h4 style={{ color: 'var(--primary)', margin: '0 0 12px 0' }}>Performance Insight</h4>
+    <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.6' }}>
+      Due to cache locality, iterating through an `ArrayList` is often <strong>5x to 10x faster</strong> than traversing a `LinkedList` of the same size, even though both represent linear list loops.
+    </p>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    The playbook below illustrates sorting lists, using `LinkedList` as a double-ended structure, and thread-safe iterations.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="List Sorting (ArrayList)" lang="java" code={`import java.util.*;
+
+public class ArrayListSorting {
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>();
+        list.add("Java");
+        list.add("Python");
+        list.add("Rust");
+        list.add("C++");
+
+        // 1. Sort using List.sort with a custom Lambda Comparator
+        list.sort((s1, s2) -> s1.compareToIgnoreCase(s2));
+        System.out.println("Sorted natural: " + list);
+
+        // 2. Sort reverse order
+        list.sort(Comparator.reverseOrder());
+        System.out.println("Sorted reverse: " + list);
+        
+        // 3. Binary Search (Requires sorted list first!)
+        list.sort(Comparator.naturalOrder());
+        int index = Collections.binarySearch(list, "Rust");
+        System.out.println("Index of 'Rust': " + index);
+    }
+}`} />
+    <CodeTab label="LinkedList Queue & Deque" lang="java" code={`import java.util.*;
+
+public class LinkedListDequePlaybook {
+    public static void main(String[] args) {
+        // LinkedList implements List AND Deque!
+        LinkedList<String> list = new LinkedList<>();
+        
+        // Queue FIFO insertions
+        list.addLast("Job1");
+        list.addLast("Job2");
+        list.addFirst("PriorityJob");
+
+        System.out.println("Peek First: " + list.peekFirst()); // PriorityJob
+        System.out.println("Poll First: " + list.pollFirst()); // PriorityJob
+        
+        // Accessing elements in LinkedList - traverses from head or tail
+        list.add("Job3");
+        list.add("Job4");
+        System.out.println("Index 2: " + list.get(2)); // Job3 (traverses pointers)
+    }
+}`} />
+    <CodeTab label="CopyOnWriteArrayList" lang="java" code={`import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class ConcurrentListPlaybook {
+    public static void main(String[] args) {
+        // Safe for multi-threaded reads; writes copy the backing array
+        List<String> users = new CopyOnWriteArrayList<>();
+        users.add("Alice");
+        users.add("Bob");
+
+        // Safe from ConcurrentModificationException during modification!
+        for (String user : users) {
+            System.out.println("Visiting: " + user);
+            if (user.equals("Alice")) {
+                users.add("Charlie"); // Modifying list while iterating!
+            }
+        }
+        System.out.println("Final list: " + users); // [Alice, Bob, Charlie]
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">List Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>ArrayList</th>
+          <th>LinkedList</th>
+          <th>CopyOnWriteArrayList</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Underlying Structure</td>
+          <td>Contiguous Object Array</td>
+          <td>Doubly-Linked List Nodes</td>
+          <td>Volatile Object Array</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Random Access (O(1))</td>
+          <td>Yes</td>
+          <td>No (O(N) traversal)</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Insert/Delete (Ends)</td>
+          <td>Amortized O(1)</td>
+          <td>O(1)</td>
+          <td>O(N) (creates array copy)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Insert/Delete (Middle)</td>
+          <td>O(N) (shifting)</td>
+          <td>O(N) (to find index) + O(1) (re-link)</td>
+          <td>O(N) (creates array copy)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Memory Overhead</td>
+          <td>Minimal (unused array capacity)</td>
+          <td>High (32 bytes per node wrapper)</td>
+          <td>Low</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Cache Locality</td>
+          <td>Excellent (contiguous block)</td>
+          <td>Poor (scattered heap nodes)</td>
+          <td>Excellent</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Thread Safety</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Yes (lock-free reads, lock-based writes)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion & Takeaways</h2>
+  <p>
+    ArrayList is the default List implementation in Java due to its CPU cache-friendly layout and minimal memory overhead. Knowing when to bypass LinkedList's node creation overhead and how to use concurrent lists safely is essential for building scalable applications.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Which list is faster?</strong> ArrayList is almost always faster. Even for insertions in the middle, CPU cache-friendly contiguous copies outweigh LinkedList's node traversal steps in practice.</li>
+      <li><strong>Explain ArrayList growth mechanics:</strong> ArrayList starts with a default size (usually 10) and increases capacity by 50% (`old + (old &gt;&gt; 1)`) when full. It uses `System.arraycopy` to transfer elements.</li>
+      <li><strong>What is the memory cost of LinkedList?</strong> In 64-bit JVMs with compressed pointers, each element is wrapped in a `Node` object which consumes 32 bytes of heap space, in addition to the data itself, causing GC overhead.</li>
+      <li><strong>When should you use LinkedList?</strong> Only when you need Deque operations at both ends and want to avoid array resizing overheads, though `ArrayDeque` is usually a better choice.</li>
+      <li><strong>What is CopyOnWriteArrayList?</strong> A thread-safe list where write operations copy the backing array. Iteration is lock-free and immune to `ConcurrentModificationException`.</li>
+    </ul>
+  </div>
+</section>
