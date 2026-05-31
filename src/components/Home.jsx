@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { countCompleted, SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS } from '../config/navigation';
 import './Home.css';
 
-// SVG Icons for different tracks
+// SVG Icons for different tracks (24px sized for compactness)
 const HldIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="6" height="6" rx="1" />
     <rect x="16" y="2" width="6" height="6" rx="1" />
     <rect x="2" y="16" width="6" height="6" rx="1" />
@@ -18,7 +18,7 @@ const HldIcon = () => (
 );
 
 const JavaIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
     <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
     <path d="M6 1v3" />
@@ -28,13 +28,13 @@ const JavaIcon = () => (
 );
 
 const LldIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
   </svg>
 );
 
 const DsaIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="5" r="3" />
     <circle cx="5" cy="19" r="3" />
     <circle cx="19" cy="19" r="3" />
@@ -43,8 +43,16 @@ const DsaIcon = () => (
   </svg>
 );
 
+const DbIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+  </svg>
+);
+
 const BehavioralIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 );
@@ -57,18 +65,17 @@ export default function Home() {
 
   return (
     <div className="home-dashboard">
-      {/* Hero Section */}
-      <div className="home-hero">
-        <div className="hero-tagline">Interview Prep Reimagined</div>
-        <h1>ready4interview</h1>
-        <p className="hero-desc">
-          Accelerate your prep with curated, production-grade technical interview resources. Designed for developers with visually rich vector diagrams, interactive code toggles, and direct conceptual depth.
+      {/* Minimalist Page Header */}
+      <header className="home-header">
+        <div className="home-brand">ready4interview</div>
+        <h1>Technical Interview Playbooks</h1>
+        <p className="home-subtitle">
+          Curated, production-grade learning resources designed for software engineers.
         </p>
-      </div>
+      </header>
 
-      {/* Main Track Selection */}
+      {/* Main Track Selection Grid */}
       <div className="home-tracks-section">
-        <h2 className="section-title">Select an Interview Track</h2>
         <div className="tracks-grid">
           
           {/* System Design (HLD) Card */}
@@ -81,11 +88,11 @@ export default function Home() {
             </div>
             <h3 className="track-title">System Design (HLD)</h3>
             <p className="track-desc">
-              Master distributed systems design. Covers networking layers, caching policies, database sharding, locking contention, and multi-step microservice transactions.
+              Master distributed systems, networking layers, caching policies, database sharding, lock contention, and transaction sagas.
             </p>
             <div className="track-stats">
-              <span className="stats-label">{hldStats.total} modules unlocked</span>
-              <span className="stats-progress">{hldStats.completed}/{hldStats.total} completed</span>
+              <span>{hldStats.total} modules</span>
+              <span className="stats-progress">{hldStats.completed}/{hldStats.total} done</span>
             </div>
             <button className="btn btn-primary track-btn" onClick={() => navigate('/networking')}>
               Explore HLD Track
@@ -102,16 +109,18 @@ export default function Home() {
             </div>
             <h3 className="track-title">Java Deep Dive</h3>
             <p className="track-desc">
-              Deep dive into Java language internals. Covers collections framework, concurrent lockings, memory structures, garbage collection algorithms, and virtual threads.
+              Master collections, concurrent locks, runtime memory data areas, garbage collection tuning, and Virtual Threads.
             </p>
             <div className="track-stats">
-              <span className="stats-label">{javaStats.total} modules unlocked</span>
-              <span className="stats-progress">{javaStats.completed}/{javaStats.total} completed</span>
+              <span>{javaStats.total} modules</span>
+              <span className="stats-progress">{javaStats.completed}/{javaStats.total} done</span>
             </div>
             <button className="btn btn-primary track-btn" onClick={() => navigate('/java-map')}>
               Explore Java Track
             </button>
           </div>
+
+          {/* Low-Level Design Card */}
           <div className="track-card track-card--locked">
             <div className="track-card-header">
               <div className="track-icon locked-theme">
@@ -121,17 +130,17 @@ export default function Home() {
             </div>
             <h3 className="track-title">Low-Level Design (LLD)</h3>
             <p className="track-desc">
-              Master object-oriented design principles (SOLID), design patterns, entity modeling, schema mappings, and coding clean architectural frameworks.
+              Design clean object-oriented systems with SOLID design patterns, class structures, entity modeling, and clean architectures.
             </p>
             <div className="track-stats">
-              <span className="stats-label">Coming Soon</span>
+              <span className="stats-coming-soon">Coming Soon</span>
             </div>
             <button className="btn btn-outline track-btn" disabled>
               Locked
             </button>
           </div>
 
-          {/* DSA Card (Locked) */}
+          {/* DSA Card */}
           <div className="track-card track-card--locked">
             <div className="track-card-header">
               <div className="track-icon locked-theme">
@@ -139,19 +148,39 @@ export default function Home() {
               </div>
               <span className="track-badge badge-locked">Locked</span>
             </div>
-            <h3 className="track-title">Algorithms & Coding (DSA)</h3>
+            <h3 className="track-title">Algorithms (DSA)</h3>
             <p className="track-desc">
-              Review high-frequency LeetCode algorithmic patterns: dynamic programming, graph traversals, tree balancing, and complex data structures.
+              Review critical coding interview patterns: dynamic programming, graph traversals, heap queues, and complex structures.
             </p>
             <div className="track-stats">
-              <span className="stats-label">Coming Soon</span>
+              <span className="stats-coming-soon">Coming Soon</span>
             </div>
             <button className="btn btn-outline track-btn" disabled>
               Locked
             </button>
           </div>
 
-          {/* Behavioral Card (Locked) */}
+          {/* Database Internals Card */}
+          <div className="track-card track-card--locked">
+            <div className="track-card-header">
+              <div className="track-icon locked-theme">
+                <DbIcon />
+              </div>
+              <span className="track-badge badge-locked">Locked</span>
+            </div>
+            <h3 className="track-title">Database Internals</h3>
+            <p className="track-desc">
+              Master storage engine models (LSM Trees, B-Trees), transaction isolation levels, replication topologies, and consensus engines.
+            </p>
+            <div className="track-stats">
+              <span className="stats-coming-soon">Coming Soon</span>
+            </div>
+            <button className="btn btn-outline track-btn" disabled>
+              Locked
+            </button>
+          </div>
+
+          {/* Behavioral Round Card */}
           <div className="track-card track-card--locked">
             <div className="track-card-header">
               <div className="track-icon locked-theme">
@@ -161,10 +190,10 @@ export default function Home() {
             </div>
             <h3 className="track-title">Behavioral Round</h3>
             <p className="track-desc">
-              Master the STAR method. Structure key stories around ownership, handling conflict, delivering projects, and aligning with core leadership values.
+              Learn the STAR method to structure leadership stories, resolve team conflicts, and demonstrate end-to-end project ownership.
             </p>
             <div className="track-stats">
-              <span className="stats-label">Coming Soon</span>
+              <span className="stats-coming-soon">Coming Soon</span>
             </div>
             <button className="btn btn-outline track-btn" disabled>
               Locked

@@ -376,3 +376,28 @@
     display: none;
   }
 }
+
+/* ---- Back to Home Link ---- */
+.back-to-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 20px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-main);
+  width: fit-content;
+}
+
+.back-to-home-link:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+  text-decoration: none;
+}
