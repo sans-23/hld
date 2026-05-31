@@ -377,27 +377,45 @@
   }
 }
 
-/* ---- Back to Home Link ---- */
-.back-to-home-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-decoration: none;
-  margin-bottom: 20px;
-  font-weight: 600;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-main);
-  width: fit-content;
+/* ---- Sidebar Brand Back Link ---- */
+.sidebar-brand-section {
+  margin-bottom: 24px;
 }
 
-.back-to-home-link:hover {
-  color: var(--primary);
-  border-color: var(--primary);
-  background-color: var(--primary-light);
+.sidebar-brand-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.sidebar-brand-back:hover {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.brand-back-arrow {
+  color: var(--text-muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-brand-back:hover .brand-back-arrow {
+  color: var(--primary);
+  transform: translateX(-2px);
+}
+
+.sidebar-track-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+  margin-left: 18px; /* Align text under brand by offsetting arrow */
 }
