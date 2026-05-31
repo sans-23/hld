@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { VALID_ARTICLE_IDS } from '../config/navigation';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { useProgress } from '../context/ProgressContext';
 import './MainContent.css';
 
 import NetworkingEssentials from '../content/articles/networking-essentials.mdx';
@@ -93,11 +94,33 @@ export default function MainContent() {
     return <NetworkingEssentials />;
   };
 
+  const { completedArticles, toggleCompleted } = useProgress();
+  const activeArticleId = articleId || 'networking';
+  const isCompleted = completedArticles.includes(activeArticleId);
+
   return (
     <main className="content-scrollable">
       <article>
         {renderArticle()}
       </article>
+
+      <div className="article-completion-footer">
+        <button 
+          className={`btn-completion ${isCompleted ? 'completed' : ''}`}
+          onClick={() => toggleCompleted(activeArticleId)}
+        >
+          {isCompleted ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Topic Completed
+            </>
+          ) : (
+            'Mark Topic as Completed'
+          )}
+        </button>
+      </div>
     </main>
   );
 }

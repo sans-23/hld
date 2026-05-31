@@ -1287,3 +1287,50 @@
 .api-flow-node--rpc .api-flow-node-title {
   color: #1565c0;
 }
+
+/* ---- Article Completion Footer ---- */
+.article-completion-footer {
+  margin-top: 48px;
+  border-top: 1px solid var(--border-color);
+  padding: 32px 0 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-completion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.btn-completion:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(41, 154, 141, 0.12);
+}
+
+.btn-completion:active {
+  transform: translateY(0);
+}
+
+.btn-completion.completed {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-completion.completed:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(41, 154, 141, 0.2);
+}

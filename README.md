@@ -154,3 +154,63 @@ Describe the fundamental challenge in 2-3 punchy sentences.
 ```
 
 *Note: Headings in MDX can be assigned explicit IDs using the syntax `{#id}` if configured, or written as standard HTML tags if required, like `<h2 id="core-problem">The Core Problem</h2>` to guarantee alignment with `RightSidebar.jsx`.*
+
+---
+
+## 🔒 Environment Variables & Deployment (Firebase + Netlify)
+
+The application supports optional **Google Sign-In** and **Progress Persistence** powered by Firebase Authentication and Firestore. 
+
+### Local Configuration
+1. Copy the `.env.example` file to create a local `.env` configuration:
+   ```bash
+   cp .env.example .env
+   ```
+2. Fill in the credentials using the details from your **Firebase Console** (Project Settings):
+   ```env
+   VITE_FIREBASE_API_KEY=AIzaSyA...
+   VITE_FIREBASE_AUTH_DOMAIN=ready4interview.firebaseapp.com
+   ...
+   ```
+
+#### How to Retrieve Credentials from the Firebase Console:
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and select your project.
+2. In the top-left sidebar next to **Project Overview**, click the **Gear Icon** (Settings) and select **Project Settings**.
+3. Under the **General** tab, scroll down to the **Your apps** section (if you haven't added a web app yet, click the web icon `</>` to register one).
+4. Under your web app, select the **Config** radio button. You will see a JavaScript config object:
+   ```javascript
+   const firebaseConfig = {
+     apiKey: "YOUR_API_KEY",
+     authDomain: "YOUR_AUTH_DOMAIN",
+     projectId: "YOUR_PROJECT_ID",
+     storageBucket: "YOUR_STORAGE_BUCKET",
+     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+     appId: "YOUR_APP_ID"
+   };
+   ```
+5. Map these keys directly to your environment configuration:
+   - `apiKey` ➔ `VITE_FIREBASE_API_KEY`
+   - `authDomain` ➔ `VITE_FIREBASE_AUTH_DOMAIN`
+   - `projectId` ➔ `VITE_FIREBASE_PROJECT_ID`
+   - `storageBucket` ➔ `VITE_FIREBASE_STORAGE_BUCKET`
+   - `messagingSenderId` ➔ `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `appId` ➔ `VITE_FIREBASE_APP_ID`
+
+*Note: If no `.env` credentials are set, the application automatically runs in **Local-only fallback mode**, saving topic completion statuses to the browser's `LocalStorage` without throwing errors.*
+
+### Netlify Production Configuration
+Since we do not commit `.env` configuration files to GitHub, you must configure the environment variables directly in Netlify to enable the Firebase sync on your deployed site:
+
+1. Log in to your **Netlify Dashboard**.
+2. Go to: **Site Configuration** > **Environment variables** (under Build & Deploy).
+3. Click **Add a variable** > **Add single variable**.
+4. Input the keys and values exactly as shown in `.env.example`:
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+5. Save the variables and trigger a new deploy (or push a commit to GitHub). 
+
+*During Vite's build phase (`npm run build`), it automatically bundles environment variables prefixed with `VITE_` into your static client-side bundle, allowing Google Sign-in to connect directly from the user's browser.*

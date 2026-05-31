@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { countCompleted, SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS } from '../config/navigation';
+import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS } from '../config/navigation';
+import { useProgress } from '../context/ProgressContext';
 import './Home.css';
 
 // SVG Icons for different tracks (20px sized for minimalist look)
@@ -102,9 +103,20 @@ const ProgressRing = ({ completed, total, colorClass }) => {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { completedArticles } = useProgress();
 
-  const hldStats = countCompleted(SYSTEM_DESIGN_SECTIONS);
-  const javaStats = countCompleted(JAVA_SECTIONS);
+  const getTrackStats = (sections) => {
+    const total = sections.reduce((acc, sec) => 
+      acc + sec.items.filter(item => item.status !== 'locked').length
+    , 0);
+    const completed = sections.reduce((acc, sec) => 
+      acc + sec.items.filter(item => item.status !== 'locked' && completedArticles.includes(item.id)).length
+    , 0);
+    return { completed, total };
+  };
+
+  const hldStats = getTrackStats(SYSTEM_DESIGN_SECTIONS);
+  const javaStats = getTrackStats(JAVA_SECTIONS);
 
   return (
     <div className="home-dashboard-wrapper">

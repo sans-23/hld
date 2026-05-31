@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS, getTrackByArticleId, countCompleted } from '../config/navigation';
+import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS, getTrackByArticleId } from '../config/navigation';
+import { useProgress } from '../context/ProgressContext';
 import './Sidebar.css';
 
 const ChevronIcon = ({ expanded }) => (
@@ -29,8 +30,9 @@ const CircleIcon = () => (
   </svg>
 );
 
-function NavItem({ label, href, status }) {
-  const isCompleted = status === 'completed';
+function NavItem({ id, label, href, status }) {
+  const { isArticleCompleted } = useProgress();
+  const isCompleted = isArticleCompleted(id);
   const isLocked = status === 'locked';
   const icon = isCompleted ? <CheckCircleIcon /> : isLocked ? <LockIcon /> : <CircleIcon />;
 
@@ -97,7 +99,16 @@ export default function LeftSidebar({ isOpen }) {
   const sections = track === 'java' ? JAVA_SECTIONS : SYSTEM_DESIGN_SECTIONS;
   const brandTitle = track === 'java' ? 'Java Deep Dive' : 'Learn System Design';
 
-  const { completed, total } = countCompleted(sections);
+  const { completedArticles } = useProgress();
+
+  const total = sections.reduce((acc, sec) => 
+    acc + sec.items.filter(item => item.status !== 'locked').length
+  , 0);
+
+  const completed = sections.reduce((acc, sec) => 
+    acc + sec.items.filter(item => item.status !== 'locked' && completedArticles.includes(item.id)).length
+  , 0);
+
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
