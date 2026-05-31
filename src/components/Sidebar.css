@@ -378,44 +378,49 @@
 }
 
 /* ---- Sidebar Brand Back Link ---- */
-.sidebar-brand-section {
+.sidebar-header-back-wrapper {
   margin-bottom: 24px;
 }
 
-.sidebar-brand-back {
+.sidebar-back-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-main);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.sidebar-brand-back:hover {
-  color: var(--primary);
-  text-decoration: none;
-}
-
-.brand-back-arrow {
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
-  transition: transform 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+  background-color: rgba(145, 158, 171, 0.06);
+  border: 1px solid rgba(145, 158, 171, 0.12);
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: all 0.2s ease-in-out;
+  width: fit-content;
 }
 
-.sidebar-brand-back:hover .brand-back-arrow {
+.sidebar-back-button:hover {
+  background-color: var(--primary-light);
+  border-color: rgba(41, 154, 141, 0.25);
   color: var(--primary);
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(41, 154, 141, 0.08);
+  transform: translateY(-0.5px);
+}
+
+.sidebar-back-button svg {
+  transition: transform 0.2s ease-in-out;
+}
+
+.sidebar-back-button:hover svg {
   transform: translateX(-2px);
 }
 
-.sidebar-track-subtitle {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-muted);
+.sidebar-track-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 4px;
-  margin-left: 18px; /* Align text under brand by offsetting arrow */
+  letter-spacing: 0.06em;
+  margin-top: 16px;
+  margin-bottom: 4px;
 }

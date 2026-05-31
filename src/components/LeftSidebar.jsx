@@ -102,14 +102,15 @@ export default function LeftSidebar({ isOpen }) {
 
   return (
     <aside className={`left-sidebar ${isOpen ? 'open' : ''}`}>
-      <div className="sidebar-brand-section">
-        <NavLink to="/" className="sidebar-brand-back">
-          <svg className="brand-back-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
+      <div className="sidebar-header-back-wrapper">
+        <NavLink to="/" className="sidebar-back-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          back
+          Back
         </NavLink>
-        <div className="sidebar-track-subtitle">{brandTitle}</div>
+        <div className="sidebar-track-title">{brandTitle}</div>
       </div>
       {/* Progress indicator */}
       <div className="sidebar-progress">
