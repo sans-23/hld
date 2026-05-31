@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { countCompleted, SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS } from '../config/navigation';
 import './Home.css';
 
-// SVG Icons for different tracks (24px sized for compactness)
+// SVG Icons for different tracks (20px sized for minimalist look)
 const HldIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="6" height="6" rx="1" />
     <rect x="16" y="2" width="6" height="6" rx="1" />
     <rect x="2" y="16" width="6" height="6" rx="1" />
@@ -18,7 +18,7 @@ const HldIcon = () => (
 );
 
 const JavaIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
     <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
     <path d="M6 1v3" />
@@ -28,13 +28,13 @@ const JavaIcon = () => (
 );
 
 const LldIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
   </svg>
 );
 
 const DsaIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="5" r="3" />
     <circle cx="5" cy="19" r="3" />
     <circle cx="19" cy="19" r="3" />
@@ -44,7 +44,7 @@ const DsaIcon = () => (
 );
 
 const DbIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <ellipse cx="12" cy="5" rx="9" ry="3" />
     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
     <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
@@ -52,8 +52,15 @@ const DbIcon = () => (
 );
 
 const BehavioralIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 
@@ -64,165 +71,140 @@ export default function Home() {
   const javaStats = countCompleted(JAVA_SECTIONS);
 
   return (
-    <div className="home-dashboard-wrapper">
-      {/* Ambient Neon Glow Backgrounds */}
-      <div className="cyber-glow-1"></div>
-      <div className="cyber-glow-2"></div>
-      
-      <div className="home-dashboard">
-        {/* High-Tech System Header */}
-        <div className="cyber-status-bar">
-          <span className="status-item">
-            <span className="status-dot status-dot--active"></span>
-            SYS.STATUS: ONLINE
-          </span>
-          <span className="status-item">CORE SECURE</span>
-          <span className="status-item">READY4INTERVIEW v2.5</span>
-        </div>
+    <div className="home-dashboard">
+      {/* Minimal Header */}
+      <header className="home-header">
+        <div className="home-brand">ready4interview</div>
+        <h1>Technical Interview Playbooks</h1>
+        <p className="home-subtitle">
+          Curated engineering roadmaps and deep-dive technical articles designed for software developers.
+        </p>
+      </header>
 
-        <header className="home-header">
-          <div className="home-brand">
-            <span>[</span> ready4interview <span>]</span>
+      {/* Grid Track Selection */}
+      <div className="home-tracks-section">
+        <div className="tracks-grid">
+          
+          {/* System Design (HLD) Card */}
+          <div className="track-card track-card--active" onClick={() => navigate('/networking')}>
+            <div className="track-card-header">
+              <div className="track-icon hld-theme">
+                <HldIcon />
+              </div>
+              <span className="track-badge badge-active">Active</span>
+            </div>
+            <h3 className="track-title">System Design (HLD)</h3>
+            <p className="track-desc">
+              Master distributed architectures, networking, caching, database sharding, and write contention.
+            </p>
+            <div className="track-footer">
+              <div className="track-progress-info">
+                {hldStats.completed}/{hldStats.total} completed
+              </div>
+              <span className="track-link">
+                Explore Track <span className="arrow">→</span>
+              </span>
+            </div>
           </div>
-          <h1>Technical Interview Playbooks</h1>
-          <p className="home-subtitle">
-            Curated, production-grade learning resources designed for software engineers.
-          </p>
-        </header>
 
-        {/* Main Track Selection Grid */}
-        <div className="home-tracks-section">
-          <div className="tracks-grid">
-            
-            {/* System Design (HLD) Card */}
-            <div className="track-card track-card--active cyber-card-hld">
-              <div className="track-card-header">
-                <div className="track-icon hld-theme">
-                  <HldIcon />
-                </div>
-                <span className="track-badge badge-active">SYS_DESIGN // ACTIVE</span>
+          {/* Java Deep Dive Card */}
+          <div className="track-card track-card--active" onClick={() => navigate('/java-map')}>
+            <div className="track-card-header">
+              <div className="track-icon java-theme">
+                <JavaIcon />
               </div>
-              <div className="cyber-sector">SECTOR: 0x01</div>
-              <h3 className="track-title">System Design (HLD)</h3>
-              <p className="track-desc">
-                Master distributed systems, networking layers, caching policies, database sharding, lock contention, and transaction sagas.
-              </p>
-              <div className="track-stats">
-                <span>{hldStats.total} MODULES</span>
-                <span className="stats-progress">{hldStats.completed}/{hldStats.total} COMPLETE</span>
-              </div>
-              <button className="btn btn-cyber-primary" onClick={() => navigate('/networking')}>
-                INITIALIZE HLD RUN
-              </button>
+              <span className="track-badge badge-active">Active</span>
             </div>
-
-            {/* Java Deep Dive Card */}
-            <div className="track-card track-card--active cyber-card-java">
-              <div className="track-card-header">
-                <div className="track-icon java-theme">
-                  <JavaIcon />
-                </div>
-                <span className="track-badge badge-active">JAVA_CORE // ACTIVE</span>
+            <h3 className="track-title">Java Deep Dive</h3>
+            <p className="track-desc">
+              Master collections, concurrent locks, JVM memory areas, GC execution, and Virtual Threads.
+            </p>
+            <div className="track-footer">
+              <div className="track-progress-info">
+                {javaStats.completed}/{javaStats.total} completed
               </div>
-              <div className="cyber-sector">SECTOR: 0x02</div>
-              <h3 className="track-title">Java Deep Dive</h3>
-              <p className="track-desc">
-                Master collections, concurrent locks, runtime memory data areas, garbage collection tuning, and Virtual Threads.
-              </p>
-              <div className="track-stats">
-                <span>{javaStats.total} MODULES</span>
-                <span className="stats-progress">{javaStats.completed}/{javaStats.total} COMPLETE</span>
-              </div>
-              <button className="btn btn-cyber-primary" onClick={() => navigate('/java-map')}>
-                INITIALIZE JAVA RUN
-              </button>
+              <span className="track-link">
+                Explore Track <span className="arrow">→</span>
+              </span>
             </div>
-
-            {/* Low-Level Design Card */}
-            <div className="track-card track-card--locked">
-              <div className="track-card-header">
-                <div className="track-icon locked-theme">
-                  <LldIcon />
-                </div>
-                <span className="track-badge badge-locked">LLD // ENCRYPTED</span>
-              </div>
-              <div className="cyber-sector">SECTOR: 0x03</div>
-              <h3 className="track-title">Low-Level Design (LLD)</h3>
-              <p className="track-desc">
-                Design clean object-oriented systems with SOLID design patterns, class structures, entity modeling, and clean architectures.
-              </p>
-              <div className="track-stats">
-                <span className="stats-coming-soon">DECRYPTION QUEUED</span>
-              </div>
-              <button className="btn btn-cyber-locked" disabled>
-                ACCESS RESTRICTED
-              </button>
-            </div>
-
-            {/* DSA Card */}
-            <div className="track-card track-card--locked">
-              <div className="track-card-header">
-                <div className="track-icon locked-theme">
-                  <DsaIcon />
-                </div>
-                <span className="track-badge badge-locked">DSA // ENCRYPTED</span>
-              </div>
-              <div className="cyber-sector">SECTOR: 0x04</div>
-              <h3 className="track-title">Algorithms (DSA)</h3>
-              <p className="track-desc">
-                Review critical coding interview patterns: dynamic programming, graph traversals, heap queues, and complex structures.
-              </p>
-              <div className="track-stats">
-                <span className="stats-coming-soon">DECRYPTION QUEUED</span>
-              </div>
-              <button className="btn btn-cyber-locked" disabled>
-                ACCESS RESTRICTED
-              </button>
-            </div>
-
-            {/* Database Internals Card */}
-            <div className="track-card track-card--locked">
-              <div className="track-card-header">
-                <div className="track-icon locked-theme">
-                  <DbIcon />
-                </div>
-                <span className="track-badge badge-locked">DB_INTERNAL // ENCRYPTED</span>
-              </div>
-              <div className="cyber-sector">SECTOR: 0x05</div>
-              <h3 className="track-title">Database Internals</h3>
-              <p className="track-desc">
-                Master storage engine models (LSM Trees, B-Trees), transaction isolation levels, replication topologies, and consensus engines.
-              </p>
-              <div className="track-stats">
-                <span className="stats-coming-soon">DECRYPTION QUEUED</span>
-              </div>
-              <button className="btn btn-cyber-locked" disabled>
-                ACCESS RESTRICTED
-              </button>
-            </div>
-
-            {/* Behavioral Round Card */}
-            <div className="track-card track-card--locked">
-              <div className="track-card-header">
-                <div className="track-icon locked-theme">
-                  <BehavioralIcon />
-                </div>
-                <span className="track-badge badge-locked">BEHAVIORAL // ENCRYPTED</span>
-              </div>
-              <div className="cyber-sector">SECTOR: 0x06</div>
-              <h3 className="track-title">Behavioral Round</h3>
-              <p className="track-desc">
-                Learn the STAR method to structure leadership stories, resolve team conflicts, and demonstrate end-to-end project ownership.
-              </p>
-              <div className="track-stats">
-                <span className="stats-coming-soon">DECRYPTION QUEUED</span>
-              </div>
-              <button className="btn btn-cyber-locked" disabled>
-                ACCESS RESTRICTED
-              </button>
-            </div>
-
           </div>
+
+          {/* Low-Level Design Card */}
+          <div className="track-card track-card--locked">
+            <div className="track-card-header">
+              <div className="track-icon locked-theme">
+                <LldIcon />
+              </div>
+              <span className="track-badge badge-locked">Locked</span>
+            </div>
+            <h3 className="track-title">Low-Level Design (LLD)</h3>
+            <p className="track-desc">
+              Design clean object-oriented systems with SOLID design principles, UML patterns, and architectures.
+            </p>
+            <div className="track-footer">
+              <div className="track-progress-info locked-text">
+                <LockIcon /> Coming Soon
+              </div>
+            </div>
+          </div>
+
+          {/* DSA Card */}
+          <div className="track-card track-card--locked">
+            <div className="track-card-header">
+              <div className="track-icon locked-theme">
+                <DsaIcon />
+              </div>
+              <span className="track-badge badge-locked">Locked</span>
+            </div>
+            <h3 className="track-title">Algorithms (DSA)</h3>
+            <p className="track-desc">
+              Review critical coding interview patterns: dynamic programming, graphs, trees, and heaps.
+            </p>
+            <div className="track-footer">
+              <div className="track-progress-info locked-text">
+                <LockIcon /> Coming Soon
+              </div>
+            </div>
+          </div>
+
+          {/* Database Internals Card */}
+          <div className="track-card track-card--locked">
+            <div className="track-card-header">
+              <div className="track-icon locked-theme">
+                <DbIcon />
+              </div>
+              <span className="track-badge badge-locked">Locked</span>
+            </div>
+            <h3 className="track-title">Database Internals</h3>
+            <p className="track-desc">
+              Master storage engine models (LSM, B-Tree), transaction isolation, indexing, and replication.
+            </p>
+            <div className="track-footer">
+              <div className="track-progress-info locked-text">
+                <LockIcon /> Coming Soon
+              </div>
+            </div>
+          </div>
+
+          {/* Behavioral Round Card */}
+          <div className="track-card track-card--locked">
+            <div className="track-card-header">
+              <div className="track-icon locked-theme">
+                <BehavioralIcon />
+              </div>
+              <span className="track-badge badge-locked">Locked</span>
+            </div>
+            <h3 className="track-title">Behavioral Round</h3>
+            <p className="track-desc">
+              Learn the STAR method to structure leadership stories, resolve conflicts, and show ownership.
+            </p>
+            <div className="track-footer">
+              <div className="track-progress-info locked-text">
+                <LockIcon /> Coming Soon
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

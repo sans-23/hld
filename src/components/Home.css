@@ -1,376 +1,213 @@
-/* Cyberpunk Dashboard Layout */
-.home-dashboard-wrapper {
-  --text-main: #ffffff;
-  --text-muted: #a9b1d6; /* Modern cool grey */
-  --border-color: rgba(0, 242, 254, 0.15); /* Neon cyan border tint */
-  
-  background-color: #0b0e17; /* Deep slate-black */
-  background-image: 
-    radial-gradient(rgba(0, 242, 254, 0.05) 1.5px, transparent 1.5px),
-    linear-gradient(rgba(0, 242, 254, 0.01) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 242, 254, 0.01) 1px, transparent 1px);
-  background-size: 24px 24px, 48px 48px, 48px 48px;
-  width: 100%;
-  min-height: 100%;
-  position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
-  flex: 1;
-}
-
-/* Ambient Neon Glow Sprites */
-.cyber-glow-1 {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(0, 242, 254, 0.1) 0%, transparent 70%);
-  top: -150px;
-  left: -100px;
-  pointer-events: none;
-  filter: blur(60px);
-  z-index: 1;
-}
-
-.cyber-glow-2 {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(218, 82, 51, 0.07) 0%, transparent 70%);
-  bottom: -200px;
-  right: -150px;
-  pointer-events: none;
-  filter: blur(80px);
-  z-index: 1;
-}
-
+/* Minimalist Home Dashboard Styling */
 .home-dashboard {
+  flex: 1;
+  overflow-y: auto;
+  padding: 60px 40px;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 32px;
   width: 100%;
-  position: relative;
-  z-index: 2;
+  background-color: var(--bg-main);
 }
 
-/* Cyber Console Status Bar */
-.cyber-status-bar {
-  display: flex;
-  gap: 24px;
-  font-family: 'Fira Code', 'SF Mono', monospace;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: rgba(0, 242, 254, 0.6);
-  border-bottom: 1px solid rgba(0, 242, 254, 0.1);
-  padding-bottom: 12px;
-  margin-bottom: 24px;
-  letter-spacing: 0.08em;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 8px;
-}
-
-.status-dot--active {
-  background-color: #09f7db;
-  box-shadow: 0 0 8px #09f7db;
-  animation: cyber-pulse 2s infinite;
-}
-
-@keyframes cyber-pulse {
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
-}
-
-/* Minimalist Page Header */
+/* Page Header */
 .home-header {
-  border-bottom: 1px solid rgba(0, 242, 254, 0.15);
-  padding-bottom: 28px;
-  margin-bottom: 40px;
+  margin-bottom: 48px;
+  padding-bottom: 12px;
 }
 
 .home-brand {
-  color: #00f2fe;
-  font-family: 'Fira Code', 'SF Mono', monospace;
-  font-size: 0.8rem;
+  color: var(--primary);
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   margin-bottom: 12px;
-  text-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
-}
-
-.home-brand span {
-  color: rgba(218, 82, 51, 0.85); /* Accent neon brackets */
 }
 
 .home-header h1 {
   font-size: 2.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-main);
   margin-bottom: 12px;
-  letter-spacing: -0.01em;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+  letter-spacing: -0.02em;
 }
 
 .home-subtitle {
   font-size: 0.95rem;
-  color: rgba(169, 177, 214, 0.8);
-  max-width: 650px;
+  color: var(--text-muted);
+  max-width: 600px;
   line-height: 1.5;
   margin: 0;
 }
 
-/* Grid Layout - Mobile Friendly & Responsive */
+/* Sections Grid */
+.home-tracks-section {
+  margin-top: 12px;
+}
+
 .tracks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 48px;
 }
 
-/* Cyber Glassmorphic Cards */
+/* Track Cards */
 .track-card {
-  background: rgba(13, 17, 28, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 242, 254, 0.12);
+  background: #ffffff;
+  border: 1px solid rgba(145, 158, 171, 0.16);
   border-radius: 12px;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-}
-
-.track-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: transparent;
-  transition: background 0.2s ease;
-}
-
-.cyber-card-hld:hover::before {
-  background: linear-gradient(90deg, #00f2fe, transparent);
-}
-
-.cyber-card-java:hover::before {
-  background: linear-gradient(90deg, #2b6cb0, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.015);
 }
 
 .track-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .track-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
 }
 
-/* Icon themes */
+/* Icon theme colors */
 .hld-theme {
-  background-color: rgba(41, 154, 141, 0.12);
-  color: #09f7db;
-  border-color: rgba(41, 154, 141, 0.2);
+  background-color: rgba(41, 154, 141, 0.08);
+  color: var(--primary);
 }
 
 .java-theme {
-  background-color: rgba(43, 108, 176, 0.12);
-  color: #63b3ed;
-  border-color: rgba(43, 108, 176, 0.2);
+  background-color: rgba(43, 108, 176, 0.08);
+  color: #2b6cb0;
 }
 
 .locked-theme {
-  background-color: rgba(145, 158, 171, 0.05);
-  color: #718096;
-  border-color: rgba(145, 158, 171, 0.1);
+  background-color: rgba(145, 158, 171, 0.08);
+  color: var(--text-muted);
 }
 
 /* Badges */
 .track-badge {
-  font-family: 'Fira Code', 'SF Mono', monospace;
   font-size: 0.65rem;
-  font-weight: 700;
-  padding: 4px 8px;
+  font-weight: 600;
+  padding: 3px 8px;
   border-radius: 4px;
-  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .badge-active {
-  background-color: rgba(9, 247, 219, 0.08);
-  color: #09f7db;
-  border: 1px solid rgba(9, 247, 219, 0.18);
+  background-color: rgba(41, 154, 141, 0.08);
+  color: var(--primary);
 }
 
 .badge-locked {
-  background-color: rgba(218, 82, 51, 0.06);
-  color: rgba(218, 82, 51, 0.8);
-  border: 1px solid rgba(218, 82, 51, 0.15);
-}
-
-/* Cyber Sector ID */
-.cyber-sector {
-  font-family: 'Fira Code', 'SF Mono', monospace;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: rgba(218, 82, 51, 0.65);
-  margin-bottom: 8px;
-  letter-spacing: 0.06em;
+  background-color: rgba(145, 158, 171, 0.08);
+  color: var(--text-muted);
 }
 
 /* Typography inside card */
 .track-title {
   font-size: 1.15rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-main);
   margin-bottom: 8px;
 }
 
 .track-desc {
   font-size: 0.85rem;
-  color: rgba(169, 177, 214, 0.7);
-  line-height: 1.5;
-  margin-bottom: 20px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 24px;
   flex-grow: 1;
 }
 
-/* Stats */
-.track-stats {
+/* Footer & Interactivity */
+.track-footer {
+  border-top: 1px solid rgba(145, 158, 171, 0.12);
+  padding-top: 16px;
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid rgba(0, 242, 254, 0.1);
-  padding-top: 14px;
-  margin-bottom: 20px;
-  font-family: 'Fira Code', 'SF Mono', monospace;
-  font-size: 0.7rem;
-  color: rgba(169, 177, 214, 0.5);
+  align-items: center;
+  margin-top: auto;
+}
+
+.track-progress-info {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.locked-text {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.track-link {
+  font-size: 0.8rem;
   font-weight: 600;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
 }
 
-.stats-coming-soon {
-  color: rgba(218, 82, 51, 0.6);
-  letter-spacing: 0.05em;
-}
-
-.stats-progress {
-  color: #00f2fe;
-}
-
-/* Cyberpunk Neon Buttons */
-.btn-cyber-primary {
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-family: 'Fira Code', 'SF Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: transparent;
-  color: #00f2fe;
-  border: 1px solid #00f2fe;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 0 8px rgba(0, 242, 254, 0.05);
-}
-
-.btn-cyber-primary:hover {
-  background: #00f2fe;
-  color: #0b0e17;
-  box-shadow: 0 0 16px rgba(0, 242, 254, 0.35);
-  transform: translateY(-1px);
-}
-
-.btn-cyber-locked {
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-family: 'Fira Code', 'SF Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(145, 158, 171, 0.03);
-  color: rgba(145, 158, 171, 0.3);
-  border: 1px solid rgba(145, 158, 171, 0.15);
-  cursor: not-allowed;
+.arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
 }
 
 /* Interactive Hover States */
+.track-card--active {
+  cursor: pointer;
+}
+
 .track-card--active:hover {
-  transform: translateY(-4px);
-  background: rgba(18, 24, 41, 0.85);
-  border-color: rgba(0, 242, 254, 0.4);
-  box-shadow: 
-    0 12px 30px rgba(0, 0, 0, 0.4),
-    0 0 15px rgba(0, 242, 254, 0.1);
+  transform: translateY(-3px);
+  border-color: rgba(41, 154, 141, 0.35);
+  box-shadow: 0 10px 24px rgba(145, 158, 171, 0.08);
 }
 
-.track-card--active:hover .hld-theme {
-  background-color: #09f7db;
-  color: #0b0e17;
-  border-color: #09f7db;
-  transition: all 0.15s ease;
+.track-card--active:hover .track-link {
+  color: var(--primary-hover);
 }
 
-.track-card--active:hover .java-theme {
-  background-color: #3182ce;
-  color: #ffffff;
-  border-color: #3182ce;
-  transition: all 0.15s ease;
+.track-card--active:hover .arrow {
+  transform: translateX(3px);
 }
 
 .track-card--locked {
-  background-color: rgba(13, 17, 28, 0.45);
-  border-color: rgba(145, 158, 171, 0.08);
+  background-color: #fafbfc;
+  opacity: 0.85;
 }
 
-.track-card--locked:hover {
-  border-color: rgba(218, 82, 51, 0.25);
-  box-shadow: 0 0 15px rgba(218, 82, 51, 0.05);
-}
-
-/* Responsiveness Adjustments */
+/* Mobile & Tablet Responsiveness */
 @media (max-width: 768px) {
   .home-dashboard {
-    padding: 24px 16px;
-  }
-  .home-header {
-    padding-bottom: 20px;
-    margin-bottom: 28px;
+    padding: 40px 20px;
   }
   .home-header h1 {
     font-size: 1.75rem;
   }
   .home-subtitle {
-    font-size: 0.85rem;
+    font-size: 0.875rem;
   }
   .tracks-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
   }
   .track-card {
     padding: 20px;
