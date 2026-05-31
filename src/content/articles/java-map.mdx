@@ -1,0 +1,402 @@
+import React, { useState } from 'react';
+import CodeBlock from '../../components/ui/CodeBlock';
+import Callout from '../../components/ui/Callout';
+
+{/* ─── Global SVG Definitions for Arrowheads ─── */}
+<svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+  <defs>
+    <marker id="arrowhead-primary" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--primary)" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#15448e" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--text-muted)" />
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M 0 0 L 6 3 L 0 6 z" fill="#7c3aed" />
+    </marker>
+  </defs>
+</svg>
+
+{/* ─── Code Tabbing Component ─── */}
+export const CodeTabs = ({ children }) => {
+  const [activeTab, setActiveTab] = useState(0);
+  const tabs = React.Children.toArray(children);
+  const activeCode = tabs[activeTab]?.props.code || '';
+  const activeLang = tabs[activeTab]?.props.lang || 'text';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(activeCode);
+  };
+  return (
+    <div className="code-block" style={{ margin: '24px 0' }}>
+      <div className="code-block-header" style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tabs.map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveTab(idx)}
+              style={{
+                background: activeTab === idx ? 'rgba(255, 255, 255, 0.12)' : 'none',
+                border: 'none',
+                color: activeTab === idx ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                outline: 'none'
+              }}
+            >
+              {tab.props.label}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="code-block-copy" 
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.5)',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            cursor: 'pointer'
+          }}
+        >
+          Copy
+        </button>
+      </div>
+      <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', background: '#1a1b26' }}>
+        <code className={`language-${activeLang}`} style={{ fontFamily: "'Fira Code', 'SF Mono', monospace", fontSize: '0.85rem', lineHeight: '1.7', color: '#a9b1d6' }}>
+          {activeCode}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
+export const CodeTab = ({ children }) => {
+  return null;
+};
+
+{/* ─── Header ─── */}
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Java Deep Dive</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Map Interface</span>
+  </div>
+  <h1>Map Interface: HashMap, TreeMap & LinkedHashMap</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master internal storage structures, treeification algorithms, access orders, and revision syntaxes for Maps in Java.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      12 min read
+    </span>
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Java Collections
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<p>
+  Maps are the foundation of data storage in Java, mapping unique keys to values. In coding interviews and systems engineering, knowing how to choose, customize, and utilize Map structures represents a significant skill separator.
+</p>
+<p>
+  This guide breaks down Map class hierarchies, walks through HashMap collision handling and treeification, explains access ordering in LinkedHashMap for caches, and provides a comprehensive code revision sheet of Map operations.
+</p>
+
+<section className="content-section">
+  <h2 id="map-hierarchy">Map Hierarchy & Overview</h2>
+  <p>
+    The <code>Map</code> interface is not a subtype of the <code>Collection</code> interface, but it is a core member of the Java Collections Framework. Below is the simplified hierarchy of Java Map implementations:
+  </p>
+
+  {/* ASCII Hierarchy visualization inside a styled block */}
+  <div style={{ background: '#1a1b26', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#a9b1d6', border: '1px solid var(--border-color)', margin: '24px 0', lineHeight: '1.6' }}>
+    <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>Map (Interface)</span><br/>
+    ├── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>HashMap</span> (Hash Table implementation, unordered)<br/>
+    │   └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>LinkedHashMap</span> (Double-linked bucket nodes, preserves order)<br/>
+    ├── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>SortedMap (Interface)</span><br/>
+    │   └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>NavigableMap (Interface)</span><br/>
+    │       └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>TreeMap</span> (Red-Black tree implementation, sorted order)<br/>
+    └── <span style={{ color: '#7c3aed', fontWeight: 'bold' }}>ConcurrentMap (Interface)</span><br/>
+        └── <span style={{ color: '#299a8d', fontWeight: 'bold' }}>ConcurrentHashMap</span> (Fine-grained bucket locking, thread-safe)<br/>
+  </div>
+
+  <p>
+    Choosing an implementation depends on your performance constraints, ordering requirements, and whether the context requires concurrent access:
+  </p>
+  <ul>
+    <li>Use <strong>HashMap</strong> for fast $O(1)$ lookups when ordering is unimportant.</li>
+    <li>Use <strong>LinkedHashMap</strong> to preserve insertion or access order (such as in LRU caches).</li>
+    <li>Use <strong>TreeMap</strong> when keys must be kept sorted or when you need floor/ceiling queries.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="hashmap-internals">HashMap Internals & Treeification</h2>
+  <p>
+    A Java <code>HashMap</code> represents a hash table structure. Let's analyze how it handles data allocation and collision mitigation:
+  </p>
+
+  <h3>1. Array of Buckets</h3>
+  <p>
+    Internally, HashMap stores values in a transient node array: <code>Node&lt;K,V&gt;[] table</code>. Each node implements <code>Map.Entry&lt;K,V&gt;</code> and contains:
+  </p>
+  <pre style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', fontSize: '0.8rem', color: '#333', marginBottom: '16px' }}>
+    int hash;<br/>
+    final K key;<br/>
+    V value;<br/>
+    Node&lt;K,V&gt; next; // Linked list pointer for collisions
+  </pre>
+
+  <h3>2. Hash and Index Formulas</h3>
+  <p>
+    When you invoke <code>put(key, value)</code>, HashMap calculates a spread hash and maps it to a bucket:
+  </p>
+  <ul>
+    <li><strong>Spreading:</strong> <code>hash = (h = key.hashCode()) ^ (h &gt;&gt;&gt; 16)</code>. Xoring the upper 16 bits to the lower 16 bits ensures that bit patterns affecting hash codes spread influence evenly across power-of-two table capacities.</li>
+    <li><strong>Indexing:</strong> <code>index = (n - 1) & hash</code>, where $n$ is the current table array length. Since capacity is always a power of two ($2^x$), the bitwise <code>&</code> operates as a highly optimized modulo ($hash \pmod n$).</li>
+  </ul>
+
+  <h3>3. Collision Handling & Treeification</h3>
+  <p>
+    If different keys map to the same bucket index, they form a linked list. In Java 8+, if the linked list grows too long, the map optimizes retrieval via **Treeification**:
+  </p>
+  <ul>
+    <li><strong>Treeify Threshold:</strong> If a bucket's list size reaches <code>TREEIFY_THRESHOLD = 8</code> AND the total table capacity is at least <code>MIN_TREEIFY_CAPACITY = 64</code>, the list nodes are converted into Red-Black tree nodes (<code>TreeNode</code>). This changes search complexity in high-collision buckets from $O(N)$ to $O(\log N)$.</li>
+    <li><strong>Untreeify Threshold:</strong> During bucket resizing or removals, if a tree's node count falls to <code>UNTREEIFY_THRESHOLD = 6</code>, the node tree is converted back into a flat linked list to save memory overhead.</li>
+  </ul>
+  
+  <Callout type="warning">
+    <p>
+      Treeification was introduced in Java 8 to prevent <strong>HashDoS</strong> security attacks, where attackers maliciously craft inputs that share identical bucket indexes (collisions) to overload a server's CPU. By converting linked lists to Red-Black trees, retrieval complexity remains bounded at $O(\log N)$ instead of degrading to $O(N)$.
+    </p>
+  </Callout>
+
+  <h3>4. Load Factor & Resizing</h3>
+  <p>
+    The default threshold capacity is calculated as <code>capacity * loadFactor</code>. The default load factor is <code>0.75</code>. When the total number of mapping entries exceeds this threshold, the table undergoes **rehashing**:
+  </p>
+  <ul>
+    <li>A new table is allocated with double the capacity: <code>newCapacity = oldCapacity &lt;&lt; 1</code>.</li>
+    <li>All existing nodes are relocated. Since the new capacity is a power of 2, a node's index either stays the same or moves by exactly <code>oldCapacity</code>, allowing efficient bitwise re-allocation.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="treemap-internals">TreeMap: Sorted Tree Map</h2>
+  <p>
+    A <code>TreeMap</code> implements <code>NavigableMap</code> and is backed by a **Red-Black Tree**. It keeps keys sorted.
+  </p>
+  <p>
+    <strong>Key TreeMap details:</strong>
+  </p>
+  <ul>
+    <li><strong>Ordering:</strong> Kept in sorted order according to the keys' natural ordering (must implement the <code>Comparable</code> interface) or an explicit <code>Comparator</code> provided at instantiation.</li>
+    <li><strong>Performance:</strong> Guarantees $O(\log N)$ time cost for operations like <code>containsKey</code>, <code>get</code>, <code>put</code>, and <code>remove</code>.</li>
+    <li><strong>Null Keys:</strong> Does NOT allow <code>null</code> keys, because comparing a null key throws a <code>NullPointerException</code>. (Null values are allowed).</li>
+    <li><strong>Range Operations:</strong> Provides utility methods like <code>subMap()</code>, <code>headMap()</code>, <code>firstKey()</code>, <code>lastKey()</code>, <code>floorKey()</code>, and <code>ceilingKey()</code>.</li>
+  </ul>
+</section>
+
+<section className="content-section">
+  <h2 id="linkedhashmap-internals">LinkedHashMap: Order-Preserving & Caching</h2>
+  <p>
+    A <code>LinkedHashMap</code> extends <code>HashMap</code>. While it uses the same hashing and bucket arrays, it wraps all node entries in a doubly-linked list structure:
+  </p>
+  <pre style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', fontSize: '0.8rem', color: '#333', marginBottom: '16px' }}>
+    static class Entry&lt;K,V&gt; extends HashMap.Node&lt;K,V&gt; &#123;<br/>
+        Entry&lt;K,V&gt; before, after; // Pointers maintaining linked list order<br/>
+    &#125;
+  </pre>
+
+  <h3>Access-Order vs. Insertion-Order</h3>
+  <p>
+    By default, LinkedHashMap maintains elements in **Insertion-Order**.
+    However, you can configure it for **Access-Order** using the constructor:
+    <br/>
+    <code>new LinkedHashMap&lt;K,V&gt;(capacity, loadFactor, true)</code>
+  </p>
+  <p>
+    When access-order is enabled, reading (<code>get</code>) or updating (<code>put</code>) an entry moves that node to the tail of the double-linked list. The element at the head represents the **Least Recently Used (LRU)** item.
+  </p>
+
+  <h3>Building an LRU Cache</h3>
+  <p>
+    LinkedHashMap includes a protected method: <code>protected boolean removeEldestEntry(Map.Entry&lt;K,V&gt; eldest)</code>. By default, it returns <code>false</code>. 
+    If you override it to return <code>true</code> (e.g. when <code>size() &gt; maxCapacity</code>), the map automatically evicts the oldest (LRU) entry from the head whenever a new entry is added.
+  </p>
+</section>
+
+<section className="content-section">
+  <h2 id="code-operations">Systematic Operations Code</h2>
+  <p>
+    Below is a complete code reference showcasing standard, functional, and custom Map operations in Java.
+  </p>
+
+  <CodeTabs>
+    <CodeTab label="Java Maps Guide" lang="java" code={`import java.util.*;
+
+public class JavaMapPlayground {
+    public static void main(String[] args) {
+        
+        // 1. Basic Operations (HashMap)
+        Map<String, Integer> map = new HashMap<>();
+        map.put("Apple", 10);
+        map.put("Banana", 20);
+        map.put("Orange", 15);
+
+        // Fetching with defaults
+        int count1 = map.get("Apple"); // 10
+        int count2 = map.getOrDefault("Grapes", 0); // 0 (prevents NullPointerException)
+
+        // Verifications
+        boolean hasApple = map.containsKey("Apple"); // true
+        boolean hasValue20 = map.containsValue(20); // true
+
+        // 2. Modern Java 8+ Functional APIs
+        
+        // computeIfAbsent: Computes value if key is missing, then inserts it
+        map.computeIfAbsent("Mango", k -> 5 + 10); // Mango -> 15
+
+        // computeIfPresent: Updates value if key exists
+        map.computeIfPresent("Banana", (k, v) -> v + 10); // Banana -> 30
+
+        // merge: Extremely useful for counters. Sums 5 to key "Orange".
+        map.merge("Orange", 5, Integer::sum); // Orange -> 20 (15 + 5)
+        map.merge("Watermelon", 1, Integer::sum); // Watermelon -> 1 (inserted)
+
+        // putIfAbsent: Inserts only if absent, returns existing value if present
+        map.putIfAbsent("Apple", 50); // Apple remains 10
+
+        // 3. Map Iteration Mechanics
+        
+        // A. Entry Set Iterator (Most efficient)
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            System.out.println(entry.getKey() + " -> " + entry.getValue());
+        }
+
+        // B. Key Set Iteration (Avoid calling map.get() inside, causes lookup overhead)
+        for (String key : map.keySet()) {
+            System.out.println("Key: " + key);
+        }
+
+        // C. Lambda forEach
+        map.forEach((k, v) -> System.out.println(k + ":" + v));
+
+        // 4. Custom LRU Cache Implementation using LinkedHashMap
+        LRUCache<String, String> cache = new LRUCache<>(3);
+        cache.put("A", "Alpha");
+        cache.put("B", "Beta");
+        cache.put("C", "Gamma");
+        
+        cache.get("A"); // Accesses A, moves it to tail
+        cache.put("D", "Delta"); // Exceeds capacity 3, evicts B (LRU)
+        
+        System.out.println("LRU Cache keys: " + cache.keySet()); // [C, A, D]
+    }
+
+    // Custom Thread-Safe or Non-Thread-Safe LRU Cache subclass
+    public static class LRUCache<K, V> extends LinkedHashMap<K, V> {
+        private final int maxCapacity;
+
+        public LRUCache(int maxCapacity) {
+            // true flag enables access-order tracking
+            super(maxCapacity, 0.75f, true);
+            this.maxCapacity = maxCapacity;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            // Automatically removes head element when capacity threshold is broken
+            return size() > maxCapacity;
+        }
+    }
+}`} />
+  </CodeTabs>
+</section>
+
+<section className="content-section">
+  <h2 id="comparison-matrix">Map Implementations Selection Matrix</h2>
+  
+  <div className="comparison-table-wrapper">
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>HashMap</th>
+          <th>LinkedHashMap</th>
+          <th>TreeMap</th>
+          <th>ConcurrentHashMap</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="table-highlight">Structure</td>
+          <td>Hash Table</td>
+          <td>Hash Table + Double-Linked List</td>
+          <td>Red-Black Tree</td>
+          <td>Hash Table + Stripped Nodes</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Time Complexity</td>
+          <td>$O(1)$ average / $O(\log N)$ worst</td>
+          <td>$O(1)$ average / $O(\log N)$ worst</td>
+          <td>$O(\log N)$ guaranteed</td>
+          <td>$O(1)$ average / $O(\log N)$ worst</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Ordering</td>
+          <td>None (Unordered)</td>
+          <td>Insertion or Access Order</td>
+          <td>Natural order / Comparator sorted</td>
+          <td>None (Unordered)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Thread Safe?</td>
+          <td>No</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Yes (Fine-grained node locking)</td>
+        </tr>
+        <tr>
+          <td className="table-highlight">Allows Null Key/Value?</td>
+          <td>Yes / Yes</td>
+          <td>Yes / Yes</td>
+          <td>No / Yes</td>
+          <td>No / No</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="content-section">
+  <h2 id="conclusion">Conclusion</h2>
+  <p>
+    Java Maps offer varied memory and computation performance. In interviews, start by analyzing your requirements: select HashMap for fast lookups, LinkedHashMap for ordering/caching structures, and TreeMap when sorted boundaries are required.
+  </p>
+
+  <div className="takeaway-card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Key Interview Takeaways
+    </h3>
+    <ul>
+      <li><strong>Spreading high-bit hash codes:</strong> Explain how key.hashCode() is spread using <code>^ (h &gt;&gt;&gt; 16)</code> to prevent index collisions on power-of-two table capacities.</li>
+      <li><strong>State the treeification thresholds:</strong> Memorize <code>8</code> to treeify and <code>6</code> to untreeify. Proactively state that treeification prevents HashDoS attacks.</li>
+      <li><strong>Build LRU Caches with LinkedHashMap:</strong> Detail the access-order constructor flag and how overriding <code>removeEldestEntry</code> achieves automatic eviction.</li>
+      <li><strong>Know the TreeMap null limits:</strong> TreeMap throws NullPointerException on null keys because it requires Comparable sorting evaluation.</li>
+    </ul>
+  </div>
+</section>

@@ -95,16 +95,37 @@ export const SYSTEM_DESIGN_SECTIONS = [
 
 export const JAVA_SECTIONS = [
   {
-    id: 'java-core',
-    title: 'Java Core',
+    id: 'java-collections',
+    title: 'Java Collections',
     defaultExpanded: true,
     items: [
-      { id: 'java-collections', label: 'Collections Deep Dive', href: '/java-collections', status: 'default' },
-      { id: 'java-concurrency', label: 'Java Concurrency', href: '/java-concurrency', status: 'locked' },
-      { id: 'java-jvm-memory', label: 'JVM Memory Model', href: '/java-jvm-memory', status: 'locked' },
+      { id: 'java-map', label: 'Map (HashMap, TreeMap)', href: '/java-map', status: 'default' },
+      { id: 'java-queue', label: 'Queue & Deque', href: '/java-queue', status: 'locked' },
+      { id: 'java-stack', label: 'Stack & Vector', href: '/java-stack', status: 'locked' },
+      { id: 'java-list', label: 'List (ArrayList, LinkedList)', href: '/java-list', status: 'locked' },
+      { id: 'java-set', label: 'Set (HashSet, TreeSet)', href: '/java-set', status: 'locked' },
+    ],
+  },
+  {
+    id: 'java-concurrency',
+    title: 'Java Concurrency',
+    defaultExpanded: false,
+    items: [
+      { id: 'java-threads', label: 'Threads & Sync', href: '/java-threads', status: 'locked' },
+      { id: 'java-locks', label: 'Locks & CAS', href: '/java-locks', status: 'locked' },
+      { id: 'java-concurrent-collections', label: 'Concurrent Collections', href: '/java-concurrent-collections', status: 'locked' },
+      { id: 'java-virtual-threads', label: 'Virtual Threads', href: '/java-virtual-threads', status: 'locked' },
+    ],
+  },
+  {
+    id: 'java-jvm-internals',
+    title: 'JVM Internals',
+    defaultExpanded: false,
+    items: [
+      { id: 'java-jvm', label: 'JVM Architecture', href: '/java-jvm', status: 'locked' },
       { id: 'java-gc', label: 'Garbage Collection', href: '/java-gc', status: 'locked' },
-    ]
-  }
+    ],
+  },
 ];
 
 export const SECTIONS = [...SYSTEM_DESIGN_SECTIONS, ...JAVA_SECTIONS];

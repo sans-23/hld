@@ -108,12 +108,10 @@ export default function Home() {
               <span className="stats-label">{javaStats.total} modules unlocked</span>
               <span className="stats-progress">{javaStats.completed}/{javaStats.total} completed</span>
             </div>
-            <button className="btn btn-primary track-btn" onClick={() => navigate('/java-collections')}>
+            <button className="btn btn-primary track-btn" onClick={() => navigate('/java-map')}>
               Explore Java Track
             </button>
           </div>
-
-          {/* LLD Card (Locked) */}
           <div className="track-card track-card--locked">
             <div className="track-card-header">
               <div className="track-icon locked-theme">

@@ -154,13 +154,14 @@ const TOC_BY_ARTICLE = {
     { id: 'comparison-matrix', label: 'Task Processing Matrix' },
     { id: 'conclusion', label: 'Conclusion' },
   ],
-  'java-collections': [
-    { id: 'collections-overview', label: 'Collections Overview' },
-    { id: 'list-interface', label: 'List Implementations' },
-    { id: 'set-interface', label: 'Set Implementations' },
-    { id: 'map-interface', label: 'Map & HashMap Internals' },
-    { id: 'concurrent-collections', label: 'Concurrent & Thread-Safety' },
-    { id: 'summary', label: 'Interview Takeaways' },
+  'java-map': [
+    { id: 'map-hierarchy', label: 'Map Hierarchy' },
+    { id: 'hashmap-internals', label: 'HashMap Internals' },
+    { id: 'treemap-internals', label: 'TreeMap Red-Black Tree' },
+    { id: 'linkedhashmap-internals', label: 'LinkedHashMap LRU' },
+    { id: 'code-operations', label: 'Systematic Operations Code' },
+    { id: 'comparison-matrix', label: 'Map Implementations Matrix' },
+    { id: 'conclusion', label: 'Conclusion' },
   ],
   'sharding': [
     { id: 'what-is-partitioning', label: 'What is Partitioning?' },
